@@ -36,8 +36,9 @@ export default async function LoginPage({
       <Card sx={{ maxWidth: 400, width: '100%' }}>
         <CardContent sx={{ p: 4 }}>
           <Stack spacing={3} sx={{ alignItems: 'center' }}>
+            <Box component="img" src="/logo.png" alt="" sx={{ width: 140, height: 140 }} />
             <Typography variant="h4" component="h1" align="center">
-              🐉 {messages.appName}
+              {messages.appName}
             </Typography>
             <Typography variant="body1" color="text.secondary" align="center">
               {messages.tagline}
