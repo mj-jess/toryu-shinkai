@@ -11,7 +11,7 @@ Discord bot for Jess's GTA RP family server (guild: Tōryū Shinkai). First feat
 
 ## Current status (2026-07-22)
 
-**Working in production** (bot runs on Jess's machine via `npm start`; command `/academia-setup` publishes the panel):
+**Working in production** (bot runs 24/7 on an Oracle Cloud Always Free VM — see "Production hosting" below; command `/academia-setup` publishes the panel):
 
 - Fixed panel with three entry points: 💪 Adicionar, 📋 Matrículas, and 🕒 Renovações
 - Add modal: passport, name, phone (masked to `(999) 999-999`), gym select ("As duas" pre-selected), date pre-filled with today
@@ -21,7 +21,15 @@ Discord bot for Jess's GTA RP family server (guild: Tōryū Shinkai). First feat
 - Renewals view (🕒): active enrollments older than the selected period (1 month default — a fixed 30 days — or 2 weeks), most overdue first with "(há N dias)"; record card gains a 💰 Renovar button that sets the enrollment date to today (audited as "Matrícula renovada"). Prev/next/back are shared with the browse list — the session tracks which view is active.
 - Audit log channel (#log-matriculas): `/academia-log-setup` run inside a channel registers it (stored in the `settings` table); every create/edit/deactivate/reactivate posts a color-coded embed there — vertical `Chave: valor` list (full snapshot; on edits changed fields render as `before → after` inline), author line with Twemoji PNG icon (emoji in embed titles can't be baseline-aligned). Add replies with a short confirmation linking to the audit message (falls back to the full embed when no log channel is set). Audit failures never break the enrollment flow.
 
-**Not yet done / next candidates**: 24/7 hosting (see roadmap), web dashboard (future), more family-admin features as Jess requests them.
+**Not yet done / next candidates**: dev Discord app for local testing (see "Production hosting"), web dashboard (future), more family-admin features as Jess requests them.
+
+## Production hosting (since 2026-07-22)
+
+- **Oracle Cloud Always Free VM**: Ubuntu 24.04, `VM.Standard.E2.1.Micro` (1 OCPU/1GB + 1GB swap), region sa-saopaulo-1, public IP `146.235.44.150`, SSH key `~/.ssh/oracle-bot.key` (user `ubuntu`).
+- Bot managed by systemd (`familia-bot.service`): starts on boot, `Restart=always`, logs via `journalctl -u familia-bot`. Repo cloned at `~/toryu-shinkai` via a read-only GitHub deploy key.
+- **Prod DB lives only on the VM** (`~/toryu-shinkai/data/family.db`, started empty on purpose — local data was test-only). Prod `.env` holds the Tōryū Bot token.
+- Update flow: `ssh -i ~/.ssh/oracle-bot.key ubuntu@146.235.44.150 'cd toryu-shinkai && git pull && npm ci && sudo systemctl restart familia-bot'`. Run `npm run deploy` (on any machine with the prod `.env`) only when slash commands change. Day-to-day commands are in README.md.
+- **Dev/prod split**: prod token must never run locally (double-handling). Local development uses a separate Discord application ("Tōryū Bot Dev", pending creation) with its own token/CLIENT_ID in the local `.env` and the local SQLite file — interactions route per application, so dev clicks can never touch prod data.
 
 ## Setting up on a new machine
 
@@ -84,8 +92,8 @@ Then: `npm install` → `npm start`. Run `npm run deploy` only when slash comman
 
 ## Database roadmap (decided 2026-07-22)
 
-- **Now**: SQLite. A single bot process with light writes; hosting still undecided.
-- **When hosting is decided** (or the web dashboard starts): migrate to **Drizzle ORM + Postgres**. Free-tier plan: Neon (Postgres), bot on Oracle Always Free VPS or a home machine, dashboard on Vercel. Keep everything as close to R$0/month as possible — explicit constraint from Jess.
+- **Now**: SQLite on the prod VM's persistent disk — hosting on a real VPS removed the need to migrate yet.
+- **When the web dashboard starts**: migrate to **Drizzle ORM + Postgres**. Free-tier plan: Neon (Postgres), dashboard on Vercel. Keep everything as close to R$0/month as possible — explicit constraint from Jess.
 - The repository pattern + versioned migrations exist to keep that future migration cheap: only `database.ts`, `migrations.ts`, and repositories should need to change.
 - Jess knows: GitHub hosts code only (Pages = static files, no bot process); a 24/7 bot needs a real host.
 
