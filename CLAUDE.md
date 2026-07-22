@@ -37,7 +37,7 @@ What v1 contains:
 - Reads the same Neon DB via `drizzle-orm/neon-http` (`@neondatabase/serverless`) — schema/types/labels imported from the bot via the `@bot/*` → `src/` tsconfig alias (single source of truth; only pure modules: `db/schema`, `enrollment/types`, `enrollment/format`, `messages`)
 - `npm run seed:dev` resets the **dev** branch with 24 test enrollments (guarded: refuses to run against the prod endpoint)
 
-**Local dev of the dashboard — pending fixes** (Jess deferred; login locally is currently broken on purpose): register `http://localhost:3000/api/auth/callback/discord` on the **dev** Discord app and put the dev app's Client Secret in `web/.env.local` (it currently holds the prod secret with the dev app id — mismatched; the TODO is written inside the file).
+**Local dev of the dashboard works** (fixed 2026-07-22): `web/.env.local` has the dev app's Client Secret and the localhost redirect is registered on the dev Discord app. Visual identity shipped the same day: dragon-logo palette (azure light / navy dark, gold secondary), Zen Kaku Gothic New (headings) + Inter (body) via next/font, dragon favicon (`web/src/app/icon.png`) and login logo (`web/public/logo.png` — cut out from Jess's art with a flood-fill white-removal script).
 
 **Not yet done / next candidates**: Renovações page, audit history page (needs the `audit_events` table), allowlist management UI, more family-admin features as Jess requests them.
 
