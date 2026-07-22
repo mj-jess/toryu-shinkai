@@ -29,7 +29,7 @@ export function buildPanelMessage(): MessageCreateOptions {
     new ButtonBuilder()
       .setCustomId(PANEL_BUTTON_IDS.add)
       .setLabel(messages.panel.buttons.add)
-      .setEmoji('➕')
+      .setEmoji('💪')
       .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
       .setCustomId(PANEL_BUTTON_IDS.edit)
@@ -44,7 +44,7 @@ export function buildPanelMessage(): MessageCreateOptions {
     new ButtonBuilder()
       .setCustomId(PANEL_BUTTON_IDS.deactivate)
       .setLabel(messages.panel.buttons.deactivate)
-      .setEmoji('🚫')
+      .setEmoji('💤')
       .setStyle(ButtonStyle.Danger),
   );
 

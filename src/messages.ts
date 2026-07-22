@@ -28,10 +28,10 @@ export const messages = {
     description: [
       'Use os botões abaixo para gerenciar as matrículas das academias **Sandy** e **Vinewood**.',
       '',
-      '➕ **Adicionar** — registrar uma nova matrícula',
+      '💪 **Adicionar** — registrar uma nova matrícula',
       '✏️ **Editar** — corrigir dados de uma matrícula',
       '🔍 **Pesquisar** — consultar matrículas',
-      '🚫 **Inativar** — desativar uma matrícula (nada é apagado)',
+      '💤 **Inativar** — desativar uma matrícula (nada é apagado)',
     ].join('\n'),
     buttons: {
       add: 'Adicionar',
