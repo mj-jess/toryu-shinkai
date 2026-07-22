@@ -10,6 +10,7 @@ import {
 } from 'discord.js';
 import { messages } from '../messages.js';
 import { buildAddModal, handleAddModalSubmit } from './add-modal.js';
+import type { AuditAction, AuditLog } from './audit-log.js';
 import type { BrowseSessions, BrowseState } from './browse-session.js';
 import { buildDeactivateConfirmView, buildDetailView } from './detail-view.js';
 import { buildEditModal, handleEditModalSubmit } from './edit-modal.js';
@@ -23,6 +24,13 @@ const FILTER_MAX_LENGTH = 30;
 export interface BrowseContext {
   repository: EnrollmentRepository;
   sessions: BrowseSessions;
+  audit: AuditLog;
+}
+
+/** Fires an audit event for the record's current state; no-op if it vanished. */
+function sendAudit(ctx: BrowseContext, action: AuditAction, passport: string, actor: string): void {
+  const enrollment = ctx.repository.findByPassport(passport);
+  if (enrollment) void ctx.audit.send({ action, enrollment, actor });
 }
 
 function buildFilterModal(currentFilter: string): ModalBuilder {
@@ -147,10 +155,12 @@ export async function handleEnrollmentInteraction(
       }
       case 'deact-yes':
         ctx.repository.deactivate(passport, interaction.user.tag);
+        sendAudit(ctx, 'deactivated', passport, interaction.user.toString());
         await showDetail(interaction, ctx, passport, messages.detailView.deactivatedNote);
         return true;
       case 'react':
         ctx.repository.activate(passport);
+        sendAudit(ctx, 'reactivated', passport, interaction.user.toString());
         await showDetail(interaction, ctx, passport, messages.detailView.reactivatedNote);
         return true;
     }
@@ -166,7 +176,7 @@ export async function handleEnrollmentInteraction(
   if (interaction.isModalSubmit()) {
     switch (action) {
       case 'add-modal':
-        await handleAddModalSubmit(interaction, ctx.repository);
+        await handleAddModalSubmit(interaction, ctx.repository, ctx.audit);
         return true;
       case 'filter-modal': {
         const filter = interaction.fields.getTextInputValue(FILTER_FIELD_ID).trim();
@@ -174,7 +184,7 @@ export async function handleEnrollmentInteraction(
         return true;
       }
       case 'edit-modal':
-        await handleEditModalSubmit(interaction, passport, ctx.repository);
+        await handleEditModalSubmit(interaction, passport, ctx.repository, ctx.audit);
         return true;
     }
   }

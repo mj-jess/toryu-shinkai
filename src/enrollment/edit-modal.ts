@@ -9,6 +9,7 @@ import {
   type ModalSubmitInteraction,
 } from 'discord.js';
 import { gymLabels, messages } from '../messages.js';
+import type { AuditChange, AuditLog } from './audit-log.js';
 import { buildDetailView } from './detail-view.js';
 import { formatDateBR, formatPhoneNumber, getTodayBR, parseDateBR } from './format.js';
 import { enrollmentId } from './ids.js';
@@ -80,6 +81,7 @@ export async function handleEditModalSubmit(
   interaction: ModalSubmitInteraction,
   passport: string,
   repository: EnrollmentRepository,
+  audit: AuditLog,
 ): Promise<void> {
   const existing = repository.findByPassport(passport);
   if (!existing) {
@@ -123,33 +125,47 @@ export async function handleEditModalSubmit(
   const gym = rawGym !== undefined && isGym(rawGym) ? rawGym : existing.gym;
 
   const labels = messages.addModal.fields;
-  const changedLabels: string[] = [];
+  const changed: AuditChange[] = [];
   const changes: EnrollmentUpdate = { passport };
 
   if (name && name !== existing.name) {
     changes.name = name;
-    changedLabels.push(labels.name);
+    changed.push({ label: labels.name, before: existing.name, after: name });
   }
   if (phone !== existing.phone) {
     changes.phone = phone;
-    changedLabels.push(labels.phone);
+    changed.push({ label: labels.phone, before: existing.phone, after: phone });
   }
   if (gym !== existing.gym) {
     changes.gym = gym;
-    changedLabels.push(labels.gym);
+    changed.push({ label: labels.gym, before: gymLabels[existing.gym], after: gymLabels[gym] });
   }
   if (enrolledAt !== existing.enrolledAt) {
     changes.enrolledAt = enrolledAt;
-    changedLabels.push(labels.enrolledAt);
+    changed.push({
+      label: labels.enrolledAt,
+      before: formatDateBR(existing.enrolledAt),
+      after: formatDateBR(enrolledAt),
+    });
   }
 
+  const changedLabels = changed.map((change) => change.label);
   const note =
     changedLabels.length === 0
       ? messages.editModal.nothingToChange
       : `${messages.detailView.updatedNote}\n${messages.editModal.changedFieldsLabel}: ${changedLabels.join(', ')}`;
 
-  if (changedLabels.length > 0) repository.update(changes);
+  if (changed.length > 0) repository.update(changes);
   const updated = repository.findByPassport(passport) ?? existing;
+
+  if (changed.length > 0) {
+    void audit.send({
+      action: 'updated',
+      enrollment: updated,
+      actor: interaction.user.toString(),
+      changes: changed,
+    });
+  }
 
   const view = buildDetailView(updated, note);
   if (interaction.isFromMessage()) {

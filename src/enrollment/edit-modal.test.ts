@@ -6,6 +6,7 @@ import { buildEditModal, handleEditModalSubmit } from './edit-modal.js';
 import { EnrollmentRepository } from './repository.js';
 import {
   embedTitle,
+  fakeAuditLog,
   fakeModalInteraction,
   modalField,
   replyArg,
@@ -58,10 +59,12 @@ describe('buildEditModal', () => {
 describe('handleEditModalSubmit', () => {
   let db: Database;
   let repository: EnrollmentRepository;
+  let audit: ReturnType<typeof fakeAuditLog>;
 
   beforeEach(() => {
     db = createDatabase(':memory:');
     repository = new EnrollmentRepository(db);
+    audit = fakeAuditLog();
     repository.insert({
       passport: '631',
       name: 'Ryoko Toryu',
@@ -79,7 +82,7 @@ describe('handleEditModalSubmit', () => {
   it('applies changes and refreshes the record card in place', async () => {
     const interaction = editInteraction({ name: 'Ryoko Renamed' });
 
-    await handleEditModalSubmit(interaction, '631', repository);
+    await handleEditModalSubmit(interaction, '631', repository, audit);
 
     expect(repository.findByPassport('631')?.name).toBe('Ryoko Renamed');
     const payload = updateArg(interaction);
@@ -87,12 +90,22 @@ describe('handleEditModalSubmit', () => {
     expect(replyEmbed(payload)?.data.description).toContain(
       `${messages.editModal.changedFieldsLabel}: ${messages.addModal.fields.name}`,
     );
+    expect(audit.events).toMatchObject([
+      {
+        action: 'updated',
+        actor: '<@42>',
+        enrollment: { passport: '631', name: 'Ryoko Renamed' },
+        changes: [
+          { label: messages.addModal.fields.name, before: 'Ryoko Toryu', after: 'Ryoko Renamed' },
+        ],
+      },
+    ]);
   });
 
   it('changes the gym via the select', async () => {
     const interaction = editInteraction({}, 'vinewood');
 
-    await handleEditModalSubmit(interaction, '631', repository);
+    await handleEditModalSubmit(interaction, '631', repository, audit);
 
     expect(repository.findByPassport('631')?.gym).toBe('vinewood');
   });
@@ -100,20 +113,22 @@ describe('handleEditModalSubmit', () => {
   it('reports when nothing changed', async () => {
     const interaction = editInteraction();
 
-    await handleEditModalSubmit(interaction, '631', repository);
+    await handleEditModalSubmit(interaction, '631', repository, audit);
 
     expect(replyEmbed(updateArg(interaction))?.data.description).toBe(
       messages.editModal.nothingToChange,
     );
+    expect(audit.events).toEqual([]);
   });
 
   it('rejects an invalid phone without changing anything', async () => {
     const interaction = editInteraction({ phone: '12', name: 'Should Not Apply' });
 
-    await handleEditModalSubmit(interaction, '631', repository);
+    await handleEditModalSubmit(interaction, '631', repository, audit);
 
     expect(repository.findByPassport('631')?.name).toBe('Ryoko Toryu');
     expect(replyArg(interaction).content).toBe(messages.addModal.invalidPhone);
+    expect(audit.events).toEqual([]);
   });
 
   it('rejects a phone that belongs to another enrollment', async () => {
@@ -127,7 +142,7 @@ describe('handleEditModalSubmit', () => {
     });
 
     const interaction = editInteraction({ phone: '111222333' });
-    await handleEditModalSubmit(interaction, '631', repository);
+    await handleEditModalSubmit(interaction, '631', repository, audit);
 
     expect(repository.findByPassport('631')?.phone).toBe('(666) 123-456');
     expect(replyArg(interaction).content).toBe(
@@ -138,7 +153,7 @@ describe('handleEditModalSubmit', () => {
   it('keeping the own phone is not a conflict', async () => {
     const interaction = editInteraction({ name: 'Renamed' });
 
-    await handleEditModalSubmit(interaction, '631', repository);
+    await handleEditModalSubmit(interaction, '631', repository, audit);
 
     expect(repository.findByPassport('631')?.name).toBe('Renamed');
   });
@@ -146,7 +161,7 @@ describe('handleEditModalSubmit', () => {
   it('rejects an invalid date without changing anything', async () => {
     const interaction = editInteraction({ enrolledAt: '31/02/2026' });
 
-    await handleEditModalSubmit(interaction, '631', repository);
+    await handleEditModalSubmit(interaction, '631', repository, audit);
 
     expect(repository.findByPassport('631')?.enrolledAt).toBe('2026-07-22');
     expect(replyArg(interaction).content).toContain('Data inválida');
@@ -155,7 +170,7 @@ describe('handleEditModalSubmit', () => {
   it('replies with an error for an unknown passport', async () => {
     const interaction = editInteraction();
 
-    await handleEditModalSubmit(interaction, '999', repository);
+    await handleEditModalSubmit(interaction, '999', repository, audit);
 
     expect(replyArg(interaction).content).toBe(messages.detailView.notFound);
   });

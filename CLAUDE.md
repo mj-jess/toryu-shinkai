@@ -18,6 +18,7 @@ Discord bot for Jess's GTA RP family server (guild: Tōryū Shinkai). First feat
 - Browse navigator (ephemeral, per-user): paginated list (10/page) with filter (exact passport or partial name) → pick a record → detail card with labeled data → actions: edit (pre-filled modal), deactivate (with confirmation + audit), reactivate (keeps data)
 - Re-enrolling an inactive passport via Add reactivates it with the new data
 - Unique passport AND phone (DB constraints + friendly conflict messages naming the conflicting record)
+- Audit log channel (#log-matriculas): `/academia-log-setup` run inside a channel registers it (stored in the `settings` table); every create/edit/deactivate/reactivate posts a color-coded embed there — vertical `Chave: valor` list (full snapshot; on edits changed fields render as `before → after` inline), author line with Twemoji PNG icon (emoji in embed titles can't be baseline-aligned). Add replies with a short confirmation linking to the audit message (falls back to the full embed when no log channel is set). Audit failures never break the enrollment flow.
 
 **Not yet done / next candidates**: 24/7 hosting (see roadmap), web dashboard (future), more family-admin features as Jess requests them.
 
@@ -58,11 +59,13 @@ Then: `npm install` → `npm start`. Run `npm run deploy` only when slash comman
 - `src/messages.ts` — every Portuguese string.
 - `src/database.ts` — SQLite connection (better-sqlite3, WAL); applies migrations on open.
 - `src/migrations.ts` — migration runner (`PRAGMA user_version` tracks the applied version).
+- `src/settings.ts` — key-value settings repository (e.g. the audit log channel id).
 - `src/enrollment/` — feature module:
   - `panel.ts` (fixed message with the two entry points: add + browse)
   - `browse-handlers.ts` (dispatcher for all `enrollment:*` interactions), `browse-session.ts` (per-user page/filter state, in-memory; lost on restart by design)
   - `list-view.ts` (paginated browser), `detail-view.ts` (record card + deactivate confirmation)
   - `add-modal.ts`, `edit-modal.ts` (edit is pre-filled, opened from the record card — Discord cannot chain modal→modal, but component→modal works)
+  - `audit-log.ts` (`AuditLog` interface + embed builder + `EnrollmentAuditLog`, which posts to the channel registered via `/academia-log-setup`)
   - `repository.ts` (queries), `format.ts` (phone/date helpers), `display.ts` (shared embed pieces), `ids.ts` (custom ID build/parse), `types.ts`
 - New features follow the same shape: one directory per feature, strings in `messages.ts`, repository pattern for DB access, custom IDs namespaced via an `ids.ts`.
 
@@ -70,7 +73,7 @@ Then: `npm install` → `npm start`. Run `npm run deploy` only when slash comman
 
 - Plain SQL files in `migrations/`, named `<version>-<kebab-description>.sql`. Versions are strictly increasing integers. Applied automatically on boot.
 - Each migration runs in a transaction; **never edit a migration that may already be applied** — add a new one.
-- Applied so far: 001 enrollments table, 002 deactivation audit columns, 003 unique phone index.
+- Applied so far: 001 enrollments table, 002 deactivation audit columns, 003 unique phone index, 004 settings table.
 
 ## Domain rules (enrollment)
 
@@ -87,7 +90,8 @@ Then: `npm install` → `npm start`. Run `npm run deploy` only when slash comman
 
 ## Environment constraints
 
-- Machine Node was 22.2.0 — this pins better-sqlite3 to v11 and vitest to v3 (newer majors need Node ≥22.12: better-sqlite3 v13 segfaults, vitest 4's rolldown fails to load). If the new machine has Node ≥22.12, these can be bumped.
+- Current machine (since 2026-07-22): Node 24.18.0 (LTS, via winget). better-sqlite3 is pinned to `^12.11.1` — the newest npm release with prebuilt Windows binaries for Node 24 (ABI 137); v13.x ships no prebuilds yet and would require Python + VS Build Tools to compile. Vitest stays on v3 (v4 bump untested, optional).
+- The repo sets `core.autocrlf false` locally (Git for Windows' system config sets it to `true`, which checks files out as CRLF and breaks `prettier --check`). On a fresh clone, run `git config core.autocrlf false` before anything else.
 
 ## Checks before finishing any task
 

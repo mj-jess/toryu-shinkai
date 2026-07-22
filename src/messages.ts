@@ -60,12 +60,14 @@ export const messages = {
 
     createdTitle: '✅ Matrícula registrada!',
     reactivatedTitle: '🔄 Matrícula reativada!',
+    savedWithLog: (title: string, logUrl: string) =>
+      `${title} · 📋 [Ver no log de auditoria](${logUrl})`,
     fields: {
       passport: 'Passaporte',
       name: 'Nome',
       phone: 'Telefone',
       gym: 'Academia',
-      enrolledAt: 'Data da matrícula',
+      enrolledAt: 'Matriculado em',
       registeredBy: 'Registrado por',
     },
   },
@@ -124,5 +126,22 @@ export const messages = {
     title: (passport: string) => `Editar — ${passport}`,
     nothingToChange: 'ℹ️ Nenhum dado foi alterado.',
     changedFieldsLabel: 'Campos alterados',
+  },
+
+  auditSetup: {
+    commandDescription:
+      'Define este canal como destino dos logs de auditoria das matrículas (admin)',
+    channelConfigured: '✅ Os logs de auditoria das matrículas serão enviados neste canal.',
+  },
+
+  auditLog: {
+    titles: {
+      created: 'Matrícula criada',
+      updated: 'Matrícula editada',
+      deactivated: 'Matrícula inativada',
+      reactivated: 'Matrícula reativada',
+    },
+    byLabel: 'Por',
+    change: (before: string, after: string) => `${before} → ${after}`,
   },
 } as const;

@@ -10,6 +10,7 @@ import {
   type ModalSubmitInteraction,
 } from 'discord.js';
 import { gymLabels, messages } from '../messages.js';
+import type { AuditLog } from './audit-log.js';
 import { formatDateBR, formatPhoneNumber, getTodayBR, parseDateBR } from './format.js';
 import type { EnrollmentRepository } from './repository.js';
 import { GYMS, isGym } from './types.js';
@@ -96,6 +97,7 @@ export function buildAddModal(): ModalBuilder {
 export async function handleAddModalSubmit(
   interaction: ModalSubmitInteraction,
   repository: EnrollmentRepository,
+  audit: AuditLog,
 ): Promise<void> {
   const passport = interaction.fields.getTextInputValue(FIELD_IDS.passport).trim();
   const name = interaction.fields.getTextInputValue(FIELD_IDS.name).trim();
@@ -169,6 +171,25 @@ export async function handleAddModalSubmit(
     title = messages.addModal.createdTitle;
   }
 
+  const saved = repository.findByPassport(passport);
+  const logUrl = saved
+    ? await audit.send({
+        action: existing ? 'reactivated' : 'created',
+        enrollment: saved,
+        actor: interaction.user.toString(),
+      })
+    : null;
+
+  // Short confirmation linking to the audit entry, which carries the full data.
+  if (logUrl) {
+    await interaction.reply({
+      content: messages.addModal.savedWithLog(title, logUrl),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  // No audit channel configured (or send failed): fall back to the full record embed.
   const embed = new EmbedBuilder()
     .setColor(SUCCESS_COLOR)
     .setTitle(title)

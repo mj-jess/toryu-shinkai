@@ -8,6 +8,7 @@ import { EnrollmentRepository } from './repository.js';
 import {
   embedFieldValue,
   embedTitle,
+  fakeAuditLog,
   fakeButtonInteraction,
   fakeModalInteraction,
   fakeSelectInteraction,
@@ -36,10 +37,12 @@ function buildInput(overrides: Partial<EnrollmentInput> = {}): EnrollmentInput {
 describe('handleEnrollmentInteraction', () => {
   let db: Database;
   let ctx: BrowseContext;
+  let audit: ReturnType<typeof fakeAuditLog>;
 
   beforeEach(() => {
     db = createDatabase(':memory:');
-    ctx = { repository: new EnrollmentRepository(db), sessions: new BrowseSessions() };
+    audit = fakeAuditLog();
+    ctx = { repository: new EnrollmentRepository(db), sessions: new BrowseSessions(), audit };
     ctx.repository.insert(buildInput());
   });
 
@@ -115,6 +118,9 @@ describe('handleEnrollmentInteraction', () => {
     expect(embedFieldValue(payload, messages.detailView.statusLabel)).toBe(
       messages.detailView.statusInactive,
     );
+    expect(audit.events).toMatchObject([
+      { action: 'deactivated', actor: '<@42>', enrollment: { passport: '631', active: false } },
+    ]);
   });
 
   it('reactivates keeping the data', async () => {
@@ -131,6 +137,9 @@ describe('handleEnrollmentInteraction', () => {
     expect(replyEmbed(updateArg(interaction))?.data.description).toBe(
       messages.detailView.reactivatedNote,
     );
+    expect(audit.events).toMatchObject([
+      { action: 'reactivated', enrollment: { passport: '631', active: true } },
+    ]);
   });
 
   it('goes back from the card to the list keeping the session state', async () => {

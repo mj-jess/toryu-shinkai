@@ -8,7 +8,7 @@ import {
   type ActionRowBuilder as ActionRow,
   type MessageActionRowComponentBuilder,
 } from 'discord.js';
-import { gymLabels, messages } from '../messages.js';
+import { messages } from '../messages.js';
 import type { BrowseState } from './browse-session.js';
 import { EMBED_COLOR, listEntry } from './display.js';
 import { enrollmentId } from './ids.js';
@@ -65,9 +65,6 @@ export function buildListView(
           new StringSelectMenuOptionBuilder()
             .setLabel(`${enrollment.passport} — ${enrollment.name}`)
             .setValue(enrollment.passport)
-            .setDescription(
-              `${messages.listView.entryLine(enrollment.phone, gymLabels[enrollment.gym])}`,
-            )
             .setEmoji(enrollment.active ? '✅' : '💤'),
         ),
       );

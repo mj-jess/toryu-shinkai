@@ -6,8 +6,25 @@ import {
   type StringSelectMenuInteraction,
 } from 'discord.js';
 import { vi, type Mock } from 'vitest';
+import type { AuditEvent, AuditLog } from './audit-log.js';
 
 type AnyInteraction = ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
+
+export const FAKE_AUDIT_LOG_URL = 'https://discord.com/channels/1/2/3';
+
+/** In-memory AuditLog double that records every event; `url` is what send() resolves to. */
+export function fakeAuditLog(
+  url: string | null = FAKE_AUDIT_LOG_URL,
+): AuditLog & { events: AuditEvent[] } {
+  const events: AuditEvent[] = [];
+  return {
+    events,
+    send: async (event: AuditEvent) => {
+      events.push(event);
+      return url;
+    },
+  };
+}
 
 function baseInteraction(customId: string) {
   return {
