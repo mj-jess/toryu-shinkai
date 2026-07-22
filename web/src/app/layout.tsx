@@ -30,9 +30,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR" className={`${inter.variable} ${zenKaku.variable}`} suppressHydrationWarning>
       <body>
-        <InitColorSchemeScript attribute="class" defaultMode="dark" />
+        <InitColorSchemeScript attribute="class" defaultMode="light" />
         <AppRouterCacheProvider>
-          <ThemeProvider theme={theme} defaultMode="dark">
+          <ThemeProvider theme={theme} defaultMode="light">
             <CssBaseline />
             {children}
           </ThemeProvider>
