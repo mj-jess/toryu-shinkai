@@ -1,23 +1,20 @@
-import type { Database, Statement } from 'better-sqlite3';
+import { eq } from 'drizzle-orm';
+import type { Database } from './database.js';
+import { settings } from './db/schema.js';
 
 /** Key-value store for bot configuration (e.g. the audit log channel). */
 export class SettingsRepository {
-  private readonly getStmt: Statement<[string], { value: string }>;
-  private readonly setStmt: Statement<[{ key: string; value: string }]>;
+  constructor(private readonly db: Database) {}
 
-  constructor(db: Database) {
-    this.getStmt = db.prepare('SELECT value FROM settings WHERE key = ?');
-    this.setStmt = db.prepare(`
-      INSERT INTO settings (key, value) VALUES (@key, @value)
-      ON CONFLICT (key) DO UPDATE SET value = excluded.value
-    `);
+  async get(key: string): Promise<string | undefined> {
+    const [row] = await this.db.select().from(settings).where(eq(settings.key, key));
+    return row?.value;
   }
 
-  get(key: string): string | undefined {
-    return this.getStmt.get(key)?.value;
-  }
-
-  set(key: string, value: string): void {
-    this.setStmt.run({ key, value });
+  async set(key: string, value: string): Promise<void> {
+    await this.db
+      .insert(settings)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: settings.key, set: { value } });
   }
 }

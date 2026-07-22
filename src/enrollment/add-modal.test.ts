@@ -1,6 +1,5 @@
-import type { Database } from 'better-sqlite3';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createDatabase } from '../database.js';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { createTestDatabase, type TestDatabase } from '../db/test-database.js';
 import { messages } from '../messages.js';
 import { handleAddModalSubmit } from './add-modal.js';
 import { EnrollmentRepository } from './repository.js';
@@ -44,18 +43,22 @@ function addInteraction(values: FormValues) {
 }
 
 describe('handleAddModalSubmit', () => {
-  let db: Database;
+  let testDb: TestDatabase;
   let repository: EnrollmentRepository;
   let audit: ReturnType<typeof fakeAuditLog>;
 
-  beforeEach(() => {
-    db = createDatabase(':memory:');
-    repository = new EnrollmentRepository(db);
-    audit = fakeAuditLog();
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+    repository = new EnrollmentRepository(testDb.db);
   });
 
-  afterEach(() => {
-    db.close();
+  afterAll(async () => {
+    await testDb.close();
+  });
+
+  beforeEach(async () => {
+    await testDb.reset();
+    audit = fakeAuditLog();
   });
 
   it('creates an enrollment from valid input', async () => {
@@ -63,7 +66,7 @@ describe('handleAddModalSubmit', () => {
 
     await handleAddModalSubmit(interaction, repository, audit);
 
-    expect(repository.findByPassport('12345')).toMatchObject({
+    expect(await repository.findByPassport('12345')).toMatchObject({
       name: 'John Doe',
       phone: '(123) 456-789',
       gym: 'both',
@@ -93,7 +96,7 @@ describe('handleAddModalSubmit', () => {
 
     await handleAddModalSubmit(interaction, repository, audit);
 
-    expect(repository.findByPassport('12345')?.name).toBe('John');
+    expect((await repository.findByPassport('12345'))?.name).toBe('John');
   });
 
   it('rejects an invalid phone without saving', async () => {
@@ -101,7 +104,7 @@ describe('handleAddModalSubmit', () => {
 
     await handleAddModalSubmit(interaction, repository, audit);
 
-    expect(repository.findByPassport('12345')).toBeUndefined();
+    expect(await repository.findByPassport('12345')).toBeUndefined();
     expect(replyArg(interaction).content).toBe(messages.addModal.invalidPhone);
     expect(audit.events).toEqual([]);
   });
@@ -111,7 +114,7 @@ describe('handleAddModalSubmit', () => {
 
     await handleAddModalSubmit(interaction, repository, audit);
 
-    expect(repository.findByPassport('12345')).toBeUndefined();
+    expect(await repository.findByPassport('12345')).toBeUndefined();
     expect(replyArg(interaction).content).toContain('Data inválida');
   });
 
@@ -123,7 +126,7 @@ describe('handleAddModalSubmit', () => {
     );
     await handleAddModalSubmit(second, repository, audit);
 
-    expect(repository.findByPassport('99')).toBeUndefined();
+    expect(await repository.findByPassport('99')).toBeUndefined();
     expect(replyArg(second).content).toBe(
       messages.addModal.phoneInUse('(123) 456-789', '12345', 'John Doe'),
     );
@@ -135,18 +138,18 @@ describe('handleAddModalSubmit', () => {
     const second = addInteraction(buildFormValues({ name: 'Someone Else' }));
     await handleAddModalSubmit(second, repository, audit);
 
-    expect(repository.findByPassport('12345')?.name).toBe('John Doe');
+    expect((await repository.findByPassport('12345'))?.name).toBe('John Doe');
     expect(replyArg(second).content).toContain('já tem matrícula ativa');
   });
 
   it('reactivates an inactive enrollment with the new data', async () => {
     await handleAddModalSubmit(addInteraction(buildFormValues()), repository, audit);
-    repository.deactivate('12345', 'tester#0');
+    await repository.deactivate('12345', 'tester#0');
 
     const again = addInteraction(buildFormValues({ name: 'John Returns', gym: 'sandy' }));
     await handleAddModalSubmit(again, repository, audit);
 
-    expect(repository.findByPassport('12345')).toMatchObject({
+    expect(await repository.findByPassport('12345')).toMatchObject({
       name: 'John Returns',
       gym: 'sandy',
       active: true,

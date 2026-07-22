@@ -1,6 +1,5 @@
-import type { Database } from 'better-sqlite3';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createDatabase } from '../database.js';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { createTestDatabase, type TestDatabase } from '../db/test-database.js';
 import { EnrollmentRepository } from './repository.js';
 import type { EnrollmentInput } from './types.js';
 
@@ -20,22 +19,26 @@ function buildInput(overrides: Partial<EnrollmentInput> = {}): EnrollmentInput {
 }
 
 describe('EnrollmentRepository', () => {
-  let db: Database;
+  let testDb: TestDatabase;
   let repository: EnrollmentRepository;
 
-  beforeEach(() => {
-    db = createDatabase(':memory:');
-    repository = new EnrollmentRepository(db);
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+    repository = new EnrollmentRepository(testDb.db);
   });
 
-  afterEach(() => {
-    db.close();
+  afterAll(async () => {
+    await testDb.close();
   });
 
-  it('inserts and finds an enrollment by passport', () => {
-    repository.insert(buildInput({ phone: '(123) 456-789' }));
+  beforeEach(async () => {
+    await testDb.reset();
+  });
 
-    const found = repository.findByPassport('12345');
+  it('inserts and finds an enrollment by passport', async () => {
+    await repository.insert(buildInput({ phone: '(123) 456-789' }));
+
+    const found = await repository.findByPassport('12345');
     expect(found).toMatchObject({
       passport: '12345',
       name: 'John Doe',
@@ -49,42 +52,47 @@ describe('EnrollmentRepository', () => {
     });
   });
 
-  it('finds an enrollment by phone', () => {
-    repository.insert(buildInput({ phone: '(111) 222-333' }));
+  it('finds an enrollment by phone', async () => {
+    await repository.insert(buildInput({ phone: '(111) 222-333' }));
 
-    expect(repository.findByPhone('(111) 222-333')?.passport).toBe('12345');
-    expect(repository.findByPhone('(999) 999-999')).toBeUndefined();
+    expect((await repository.findByPhone('(111) 222-333'))?.passport).toBe('12345');
+    expect(await repository.findByPhone('(999) 999-999')).toBeUndefined();
   });
 
-  it('rejects duplicate passports', () => {
-    repository.insert(buildInput());
-    expect(() => repository.insert(buildInput({ name: 'Other' }))).toThrow(/UNIQUE/);
+  it('rejects duplicate passports', async () => {
+    await repository.insert(buildInput());
+
+    // Drizzle wraps the Postgres error; the unique violation lives in `cause`.
+    const error = await repository.insert(buildInput({ name: 'Other' })).catch((e: unknown) => e);
+    expect(String((error as Error).cause)).toMatch(/duplicate key/);
   });
 
-  it('rejects duplicate phones', () => {
-    repository.insert(buildInput({ phone: '(111) 222-333' }));
-    expect(() => repository.insert(buildInput({ passport: '99', phone: '(111) 222-333' }))).toThrow(
-      /UNIQUE/,
-    );
+  it('rejects duplicate phones', async () => {
+    await repository.insert(buildInput({ phone: '(111) 222-333' }));
+
+    const error = await repository
+      .insert(buildInput({ passport: '99', phone: '(111) 222-333' }))
+      .catch((e: unknown) => e);
+    expect(String((error as Error).cause)).toMatch(/duplicate key/);
   });
 
-  it('deactivates without deleting, recording the audit trail', () => {
-    repository.insert(buildInput());
-    repository.deactivate('12345', 'admin#1');
+  it('deactivates without deleting, recording the audit trail', async () => {
+    await repository.insert(buildInput());
+    await repository.deactivate('12345', 'admin#1');
 
-    const found = repository.findByPassport('12345');
+    const found = await repository.findByPassport('12345');
     expect(found?.active).toBe(false);
     expect(found?.deactivatedBy).toBe('admin#1');
     expect(found?.deactivatedAt).toBeTruthy();
   });
 
-  it('activate reactivates keeping data and clears the audit trail', () => {
-    repository.insert(buildInput({ name: 'Keep Me' }));
-    repository.deactivate('12345', 'admin#1');
+  it('activate reactivates keeping data and clears the audit trail', async () => {
+    await repository.insert(buildInput({ name: 'Keep Me' }));
+    await repository.deactivate('12345', 'admin#1');
 
-    repository.activate('12345');
+    await repository.activate('12345');
 
-    expect(repository.findByPassport('12345')).toMatchObject({
+    expect(await repository.findByPassport('12345')).toMatchObject({
       name: 'Keep Me',
       active: true,
       deactivatedBy: null,
@@ -92,13 +100,13 @@ describe('EnrollmentRepository', () => {
     });
   });
 
-  it('reactivate replaces data and clears the audit trail', () => {
-    repository.insert(buildInput());
-    repository.deactivate('12345', 'admin#1');
+  it('reactivate replaces data and clears the audit trail', async () => {
+    await repository.insert(buildInput());
+    await repository.deactivate('12345', 'admin#1');
 
-    repository.reactivate(buildInput({ name: 'John Updated', gym: 'sandy' }));
+    await repository.reactivate(buildInput({ name: 'John Updated', gym: 'sandy' }));
 
-    expect(repository.findByPassport('12345')).toMatchObject({
+    expect(await repository.findByPassport('12345')).toMatchObject({
       name: 'John Updated',
       gym: 'sandy',
       active: true,
@@ -107,12 +115,12 @@ describe('EnrollmentRepository', () => {
     });
   });
 
-  it('update changes only the provided fields', () => {
-    repository.insert(buildInput({ phone: '(123) 456-789' }));
+  it('update changes only the provided fields', async () => {
+    await repository.insert(buildInput({ phone: '(123) 456-789' }));
 
-    repository.update({ passport: '12345', name: 'Renamed' });
+    await repository.update({ passport: '12345', name: 'Renamed' });
 
-    expect(repository.findByPassport('12345')).toMatchObject({
+    expect(await repository.findByPassport('12345')).toMatchObject({
       name: 'Renamed',
       phone: '(123) 456-789',
       gym: 'both',
@@ -121,68 +129,74 @@ describe('EnrollmentRepository', () => {
   });
 
   describe('list', () => {
-    beforeEach(() => {
-      repository.insert(buildInput({ passport: '1', name: 'Carol' }));
-      repository.insert(buildInput({ passport: '2', name: 'alice' }));
-      repository.insert(buildInput({ passport: '3', name: 'Bob' }));
-      repository.deactivate('3', 'admin#1');
+    beforeEach(async () => {
+      await repository.insert(buildInput({ passport: '1', name: 'Carol' }));
+      await repository.insert(buildInput({ passport: '2', name: 'alice' }));
+      await repository.insert(buildInput({ passport: '3', name: 'Bob' }));
+      await repository.deactivate('3', 'admin#1');
     });
 
-    it('lists everything for an empty filter, active first then by name', () => {
-      const { items, total } = repository.list('', 0, 10);
+    it('lists everything for an empty filter, active first then by name', async () => {
+      const { items, total } = await repository.list('', 0, 10);
       expect(total).toBe(3);
       expect(items.map((e) => e.name)).toEqual(['alice', 'Carol', 'Bob']);
     });
 
-    it('paginates with a stable order', () => {
-      const first = repository.list('', 0, 2);
-      const second = repository.list('', 1, 2);
+    it('paginates with a stable order', async () => {
+      const first = await repository.list('', 0, 2);
+      const second = await repository.list('', 1, 2);
       expect(first.items.map((e) => e.name)).toEqual(['alice', 'Carol']);
       expect(second.items.map((e) => e.name)).toEqual(['Bob']);
       expect(second.total).toBe(3);
     });
 
-    it('filters by exact passport', () => {
-      const { items, total } = repository.list('1', 0, 10);
+    it('filters by exact passport', async () => {
+      const { items, total } = await repository.list('1', 0, 10);
       expect(total).toBe(1);
       expect(items[0]?.name).toBe('Carol');
     });
 
-    it('filters by partial name, case-insensitive', () => {
-      const { items } = repository.list('ALI', 0, 10);
+    it('filters by partial name, case-insensitive', async () => {
+      const { items } = await repository.list('ALI', 0, 10);
       expect(items.map((e) => e.name)).toEqual(['alice']);
     });
 
-    it('returns an empty page when nothing matches', () => {
-      expect(repository.list('nobody', 0, 10)).toEqual({ items: [], total: 0 });
+    it('returns an empty page when nothing matches', async () => {
+      expect(await repository.list('nobody', 0, 10)).toEqual({ items: [], total: 0 });
     });
   });
 
   describe('listDue', () => {
-    beforeEach(() => {
-      repository.insert(buildInput({ passport: '1', name: 'Oldest', enrolledAt: '2026-04-01' }));
-      repository.insert(buildInput({ passport: '2', name: 'OnCutoff', enrolledAt: '2026-06-01' }));
-      repository.insert(buildInput({ passport: '3', name: 'Recent', enrolledAt: '2026-07-20' }));
-      repository.insert(
+    beforeEach(async () => {
+      await repository.insert(
+        buildInput({ passport: '1', name: 'Oldest', enrolledAt: '2026-04-01' }),
+      );
+      await repository.insert(
+        buildInput({ passport: '2', name: 'OnCutoff', enrolledAt: '2026-06-01' }),
+      );
+      await repository.insert(
+        buildInput({ passport: '3', name: 'Recent', enrolledAt: '2026-07-20' }),
+      );
+      await repository.insert(
         buildInput({ passport: '4', name: 'OldInactive', enrolledAt: '2026-01-01' }),
       );
-      repository.deactivate('4', 'admin#1');
+      await repository.deactivate('4', 'admin#1');
     });
 
-    it('returns active enrollments on or before the cutoff, oldest first', () => {
-      const { items, total } = repository.listDue('2026-06-01', 0, 10);
+    it('returns active enrollments on or before the cutoff, oldest first', async () => {
+      const { items, total } = await repository.listDue('2026-06-01', 0, 10);
       expect(total).toBe(2);
       expect(items.map((e) => e.name)).toEqual(['Oldest', 'OnCutoff']);
     });
 
-    it('excludes inactive enrollments even when overdue', () => {
-      const { items } = repository.listDue('2026-06-01', 0, 10);
+    it('excludes inactive enrollments even when overdue', async () => {
+      const { items } = await repository.listDue('2026-06-01', 0, 10);
       expect(items.map((e) => e.name)).not.toContain('OldInactive');
     });
 
-    it('paginates keeping the oldest-first order', () => {
-      const first = repository.listDue('2026-07-31', 0, 2);
-      const second = repository.listDue('2026-07-31', 1, 2);
+    it('paginates keeping the oldest-first order', async () => {
+      const first = await repository.listDue('2026-07-31', 0, 2);
+      const second = await repository.listDue('2026-07-31', 1, 2);
       expect(first.items.map((e) => e.name)).toEqual(['Oldest', 'OnCutoff']);
       expect(second.items.map((e) => e.name)).toEqual(['Recent']);
       expect(second.total).toBe(3);

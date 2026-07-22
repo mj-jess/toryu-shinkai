@@ -1,33 +1,36 @@
-import type { Database } from 'better-sqlite3';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createDatabase } from './database.js';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { createTestDatabase, type TestDatabase } from './db/test-database.js';
 import { SettingsRepository } from './settings.js';
 
 describe('SettingsRepository', () => {
-  let db: Database;
+  let testDb: TestDatabase;
   let settings: SettingsRepository;
 
-  beforeEach(() => {
-    db = createDatabase(':memory:');
-    settings = new SettingsRepository(db);
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+    settings = new SettingsRepository(testDb.db);
   });
 
-  afterEach(() => {
-    db.close();
+  afterAll(async () => {
+    await testDb.close();
   });
 
-  it('returns undefined for a missing key', () => {
-    expect(settings.get('missing')).toBeUndefined();
+  beforeEach(async () => {
+    await testDb.reset();
   });
 
-  it('stores and reads a value', () => {
-    settings.set('channel', '123');
-    expect(settings.get('channel')).toBe('123');
+  it('returns undefined for a missing key', async () => {
+    expect(await settings.get('missing')).toBeUndefined();
   });
 
-  it('overwrites an existing key', () => {
-    settings.set('channel', '123');
-    settings.set('channel', '456');
-    expect(settings.get('channel')).toBe('456');
+  it('stores and reads a value', async () => {
+    await settings.set('channel', '123');
+    expect(await settings.get('channel')).toBe('123');
+  });
+
+  it('overwrites an existing key', async () => {
+    await settings.set('channel', '123');
+    await settings.set('channel', '456');
+    expect(await settings.get('channel')).toBe('456');
   });
 });

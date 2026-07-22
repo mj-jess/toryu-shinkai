@@ -30,8 +30,13 @@ export interface BrowseContext {
 }
 
 /** Fires an audit event for the record's current state; no-op if it vanished. */
-function sendAudit(ctx: BrowseContext, action: AuditAction, passport: string, actor: string): void {
-  const enrollment = ctx.repository.findByPassport(passport);
+async function sendAudit(
+  ctx: BrowseContext,
+  action: AuditAction,
+  passport: string,
+  actor: string,
+): Promise<void> {
+  const enrollment = await ctx.repository.findByPassport(passport);
   if (enrollment) void ctx.audit.send({ action, enrollment, actor });
 }
 
@@ -61,7 +66,7 @@ async function showList(
   ctx: BrowseContext,
   state: BrowseState,
 ): Promise<void> {
-  const { payload, state: normalized } = buildListView(ctx.repository, state);
+  const { payload, state: normalized } = await buildListView(ctx.repository, state);
   ctx.sessions.set(interaction.user.id, normalized);
 
   if (interaction.isModalSubmit()) {
@@ -78,7 +83,7 @@ async function showDue(
   ctx: BrowseContext,
   state: BrowseState,
 ): Promise<void> {
-  const { payload, state: normalized } = buildDueView(ctx.repository, state);
+  const { payload, state: normalized } = await buildDueView(ctx.repository, state);
   ctx.sessions.set(interaction.user.id, normalized);
   await interaction.update(payload);
 }
@@ -100,7 +105,7 @@ async function showDetail(
   passport: string,
   note?: string,
 ): Promise<void> {
-  const enrollment = ctx.repository.findByPassport(passport);
+  const enrollment = await ctx.repository.findByPassport(passport);
   if (!enrollment) {
     await showList(interaction, ctx, ctx.sessions.get(interaction.user.id));
     return;
@@ -132,7 +137,7 @@ export async function handleEnrollmentInteraction(
         await interaction.showModal(buildAddModal());
         return true;
       case 'browse': {
-        const { payload, state: normalized } = buildListView(ctx.repository, {
+        const { payload, state: normalized } = await buildListView(ctx.repository, {
           ...state,
           view: 'browse',
           page: 0,
@@ -144,7 +149,7 @@ export async function handleEnrollmentInteraction(
       }
       case 'due': {
         // Always opens on the default period (1 month).
-        const { payload, state: normalized } = buildDueView(ctx.repository, {
+        const { payload, state: normalized } = await buildDueView(ctx.repository, {
           ...state,
           view: 'due',
           page: 0,
@@ -179,7 +184,7 @@ export async function handleEnrollmentInteraction(
         await showDetail(interaction, ctx, passport);
         return true;
       case 'edit': {
-        const enrollment = ctx.repository.findByPassport(passport);
+        const enrollment = await ctx.repository.findByPassport(passport);
         if (!enrollment) {
           await showList(interaction, ctx, state);
           return true;
@@ -188,7 +193,7 @@ export async function handleEnrollmentInteraction(
         return true;
       }
       case 'deact': {
-        const enrollment = ctx.repository.findByPassport(passport);
+        const enrollment = await ctx.repository.findByPassport(passport);
         if (!enrollment) {
           await showList(interaction, ctx, state);
           return true;
@@ -197,17 +202,17 @@ export async function handleEnrollmentInteraction(
         return true;
       }
       case 'deact-yes':
-        ctx.repository.deactivate(passport, interaction.user.tag);
-        sendAudit(ctx, 'deactivated', passport, interaction.user.toString());
+        await ctx.repository.deactivate(passport, interaction.user.tag);
+        await sendAudit(ctx, 'deactivated', passport, interaction.user.toString());
         await showDetail(interaction, ctx, passport, messages.detailView.deactivatedNote);
         return true;
       case 'react':
-        ctx.repository.activate(passport);
-        sendAudit(ctx, 'reactivated', passport, interaction.user.toString());
+        await ctx.repository.activate(passport);
+        await sendAudit(ctx, 'reactivated', passport, interaction.user.toString());
         await showDetail(interaction, ctx, passport, messages.detailView.reactivatedNote);
         return true;
       case 'renew': {
-        const enrollment = ctx.repository.findByPassport(passport);
+        const enrollment = await ctx.repository.findByPassport(passport);
         if (!enrollment) {
           await showCurrent(interaction, ctx, state);
           return true;
@@ -217,8 +222,8 @@ export async function handleEnrollmentInteraction(
           await showDetail(interaction, ctx, passport, messages.detailView.renewedAlreadyNote);
           return true;
         }
-        ctx.repository.update({ passport, enrolledAt: today });
-        const renewed = ctx.repository.findByPassport(passport);
+        await ctx.repository.update({ passport, enrolledAt: today });
+        const renewed = await ctx.repository.findByPassport(passport);
         if (renewed) {
           void ctx.audit.send({
             action: 'renewed',

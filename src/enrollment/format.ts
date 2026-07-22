@@ -24,6 +24,15 @@ export function getTodayISO(): string {
   return toISO(new Date());
 }
 
+/** Current timestamp as `yyyy-mm-dd hh:mm:ss`, local time (audit columns). */
+export function nowTimestamp(): string {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  return `${toISO(now)} ${hours}:${minutes}:${seconds}`;
+}
+
 /** The ISO date (yyyy-mm-dd) `days` days before today, local time. */
 export function isoDaysAgo(days: number): string {
   const date = new Date();

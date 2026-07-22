@@ -1,26 +1,22 @@
-import DatabaseConstructor, { type Database } from 'better-sqlite3';
-import { mkdirSync } from 'node:fs';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runMigrations } from './migrations.js';
+import pg from 'pg';
 
-/** Creates a database at the given location (`':memory:'` for tests) and applies all migrations. */
-export function createDatabase(location: string): Database {
-  const db = new DatabaseConstructor(location);
-  db.pragma('journal_mode = WAL');
-  runMigrations(db);
-  return db;
+/** Driver-agnostic handle: node-postgres in production, PGlite in tests. */
+export type Database = PgDatabase<PgQueryResultHKT, Record<string, unknown>>;
+
+/** Absolute path to the drizzle migrations folder (works from any cwd). */
+export function migrationsFolder(): string {
+  return join(dirname(fileURLToPath(import.meta.url)), '..', 'drizzle');
 }
 
-let defaultDatabase: Database | undefined;
-
-/** Lazily opens the production database at `data/family.db`. */
-export function getDefaultDatabase(): Database {
-  if (!defaultDatabase) {
-    const projectRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-    const dataDir = join(projectRoot, 'data');
-    mkdirSync(dataDir, { recursive: true });
-    defaultDatabase = createDatabase(join(dataDir, 'family.db'));
-  }
-  return defaultDatabase;
+/** Connects to Postgres (Neon) and applies pending migrations. */
+export async function createDatabase(connectionString: string): Promise<Database> {
+  const pool = new pg.Pool({ connectionString });
+  const db = drizzle(pool);
+  await migrate(db, { migrationsFolder: migrationsFolder() });
+  return db;
 }

@@ -121,7 +121,7 @@ export async function handleAddModalSubmit(
   }
 
   // Phones are unique: allow only when the number belongs to this same passport.
-  const phoneOwner = repository.findByPhone(phone);
+  const phoneOwner = await repository.findByPhone(phone);
   if (phoneOwner && phoneOwner.passport !== passport) {
     await interaction.reply({
       content: messages.addModal.phoneInUse(phone, phoneOwner.passport, phoneOwner.name),
@@ -139,7 +139,7 @@ export async function handleAddModalSubmit(
     return;
   }
 
-  const existing = repository.findByPassport(passport);
+  const existing = await repository.findByPassport(passport);
   if (existing?.active) {
     await interaction.reply({
       content: messages.addModal.alreadyEnrolled(
@@ -164,14 +164,14 @@ export async function handleAddModalSubmit(
 
   let title: string;
   if (existing) {
-    repository.reactivate(input);
+    await repository.reactivate(input);
     title = messages.addModal.reactivatedTitle;
   } else {
-    repository.insert(input);
+    await repository.insert(input);
     title = messages.addModal.createdTitle;
   }
 
-  const saved = repository.findByPassport(passport);
+  const saved = await repository.findByPassport(passport);
   const logUrl = saved
     ? await audit.send({
         action: existing ? 'reactivated' : 'created',

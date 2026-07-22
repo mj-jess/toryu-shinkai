@@ -90,7 +90,7 @@ export class EnrollmentAuditLog implements AuditLog {
   /** Audit failures never break the enrollment flow — they only reach the console. */
   async send(event: AuditEvent): Promise<string | null> {
     try {
-      const channelId = this.settings.get(AUDIT_CHANNEL_SETTING_KEY);
+      const channelId = await this.settings.get(AUDIT_CHANNEL_SETTING_KEY);
       if (!channelId) return null;
       const channel = await this.client.channels.fetch(channelId);
       if (!channel?.isSendable()) return null;

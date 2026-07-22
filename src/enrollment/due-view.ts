@@ -43,14 +43,17 @@ function periodButton(period: DuePeriod, active: DuePeriod): ButtonBuilder {
  * The renewals browser: active enrollments older than the selected period,
  * most overdue first, with the same select → record card navigation.
  */
-export function buildDueView(repository: EnrollmentRepository, state: BrowseState): ListViewResult {
+export async function buildDueView(
+  repository: EnrollmentRepository,
+  state: BrowseState,
+): Promise<ListViewResult> {
   const cutoff = isoDaysAgo(PERIOD_DAYS[state.period]);
-  const probe = repository.listDue(cutoff, 0, PAGE_SIZE);
+  const probe = await repository.listDue(cutoff, 0, PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(probe.total / PAGE_SIZE));
   const page = Math.min(Math.max(state.page, 0), totalPages - 1);
   const normalized: BrowseState = { ...state, view: 'due', page };
 
-  const { items, total } = page === 0 ? probe : repository.listDue(cutoff, page, PAGE_SIZE);
+  const { items, total } = page === 0 ? probe : await repository.listDue(cutoff, page, PAGE_SIZE);
 
   const periodLabel = messages.dueView.periodLabels[state.period];
   const embed = new EmbedBuilder().setColor(DUE_COLOR).setTitle(messages.dueView.title);

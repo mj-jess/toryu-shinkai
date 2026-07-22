@@ -83,7 +83,7 @@ export async function handleEditModalSubmit(
   repository: EnrollmentRepository,
   audit: AuditLog,
 ): Promise<void> {
-  const existing = repository.findByPassport(passport);
+  const existing = await repository.findByPassport(passport);
   if (!existing) {
     await interaction.reply({
       content: messages.detailView.notFound,
@@ -103,7 +103,7 @@ export async function handleEditModalSubmit(
     return;
   }
 
-  const phoneOwner = repository.findByPhone(phone);
+  const phoneOwner = await repository.findByPhone(phone);
   if (phoneOwner && phoneOwner.passport !== passport) {
     await interaction.reply({
       content: messages.addModal.phoneInUse(phone, phoneOwner.passport, phoneOwner.name),
@@ -155,8 +155,8 @@ export async function handleEditModalSubmit(
       ? messages.editModal.nothingToChange
       : `${messages.detailView.updatedNote}\n${messages.editModal.changedFieldsLabel}: ${changedLabels.join(', ')}`;
 
-  if (changed.length > 0) repository.update(changes);
-  const updated = repository.findByPassport(passport) ?? existing;
+  if (changed.length > 0) await repository.update(changes);
+  const updated = (await repository.findByPassport(passport)) ?? existing;
 
   if (changed.length > 0) {
     void audit.send({

@@ -1,7 +1,6 @@
-import type { Database } from 'better-sqlite3';
 import type { Client } from 'discord.js';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createDatabase } from '../database.js';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createTestDatabase, type TestDatabase } from '../db/test-database.js';
 import { messages } from '../messages.js';
 import { SettingsRepository } from '../settings.js';
 import {
@@ -77,16 +76,20 @@ describe('EnrollmentAuditLog', () => {
     actor: '<@42>',
   };
 
-  let db: Database;
+  let testDb: TestDatabase;
   let settings: SettingsRepository;
 
-  beforeEach(() => {
-    db = createDatabase(':memory:');
-    settings = new SettingsRepository(db);
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+    settings = new SettingsRepository(testDb.db);
   });
 
-  afterEach(() => {
-    db.close();
+  afterAll(async () => {
+    await testDb.close();
+  });
+
+  beforeEach(async () => {
+    await testDb.reset();
   });
 
   function fakeClient(fetch: ReturnType<typeof vi.fn>): Client {
@@ -103,7 +106,7 @@ describe('EnrollmentAuditLog', () => {
   });
 
   it('posts the embed to the configured channel and returns the message URL', async () => {
-    settings.set(AUDIT_CHANNEL_SETTING_KEY, 'channel-1');
+    await settings.set(AUDIT_CHANNEL_SETTING_KEY, 'channel-1');
     const send = vi.fn().mockResolvedValue({ url: 'https://discord.com/channels/1/2/3' });
     const fetch = vi.fn().mockResolvedValue({ isSendable: () => true, send });
 
@@ -116,7 +119,7 @@ describe('EnrollmentAuditLog', () => {
   });
 
   it('skips channels the bot cannot send to', async () => {
-    settings.set(AUDIT_CHANNEL_SETTING_KEY, 'channel-1');
+    await settings.set(AUDIT_CHANNEL_SETTING_KEY, 'channel-1');
     const send = vi.fn();
     const fetch = vi.fn().mockResolvedValue({ isSendable: () => false, send });
 
@@ -127,7 +130,7 @@ describe('EnrollmentAuditLog', () => {
   });
 
   it('never throws when the channel fetch fails', async () => {
-    settings.set(AUDIT_CHANNEL_SETTING_KEY, 'channel-1');
+    await settings.set(AUDIT_CHANNEL_SETTING_KEY, 'channel-1');
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const fetch = vi.fn().mockRejectedValue(new Error('boom'));
 

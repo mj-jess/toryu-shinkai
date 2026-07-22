@@ -26,16 +26,17 @@ export interface ListViewResult {
 }
 
 /** Builds the paginated enrollment browser for the given state. */
-export function buildListView(
+export async function buildListView(
   repository: EnrollmentRepository,
   state: BrowseState,
-): ListViewResult {
-  const probe = repository.list(state.filter, 0, PAGE_SIZE);
+): Promise<ListViewResult> {
+  const probe = await repository.list(state.filter, 0, PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(probe.total / PAGE_SIZE));
   const page = Math.min(Math.max(state.page, 0), totalPages - 1);
   const normalized: BrowseState = { ...state, view: 'browse', page };
 
-  const { items, total } = page === 0 ? probe : repository.list(state.filter, page, PAGE_SIZE);
+  const { items, total } =
+    page === 0 ? probe : await repository.list(state.filter, page, PAGE_SIZE);
 
   const embed = new EmbedBuilder().setColor(EMBED_COLOR).setTitle(messages.listView.title);
 

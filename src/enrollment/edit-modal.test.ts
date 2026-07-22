@@ -1,6 +1,5 @@
-import type { Database } from 'better-sqlite3';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createDatabase } from '../database.js';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { createTestDatabase, type TestDatabase } from '../db/test-database.js';
 import { messages } from '../messages.js';
 import { buildEditModal, handleEditModalSubmit } from './edit-modal.js';
 import { EnrollmentRepository } from './repository.js';
@@ -57,15 +56,23 @@ describe('buildEditModal', () => {
 });
 
 describe('handleEditModalSubmit', () => {
-  let db: Database;
+  let testDb: TestDatabase;
   let repository: EnrollmentRepository;
   let audit: ReturnType<typeof fakeAuditLog>;
 
-  beforeEach(() => {
-    db = createDatabase(':memory:');
-    repository = new EnrollmentRepository(db);
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+    repository = new EnrollmentRepository(testDb.db);
+  });
+
+  afterAll(async () => {
+    await testDb.close();
+  });
+
+  beforeEach(async () => {
+    await testDb.reset();
     audit = fakeAuditLog();
-    repository.insert({
+    await repository.insert({
       passport: '631',
       name: 'Ryoko Toryu',
       phone: '(666) 123-456',
@@ -75,16 +82,12 @@ describe('handleEditModalSubmit', () => {
     });
   });
 
-  afterEach(() => {
-    db.close();
-  });
-
   it('applies changes and refreshes the record card in place', async () => {
     const interaction = editInteraction({ name: 'Ryoko Renamed' });
 
     await handleEditModalSubmit(interaction, '631', repository, audit);
 
-    expect(repository.findByPassport('631')?.name).toBe('Ryoko Renamed');
+    expect((await repository.findByPassport('631'))?.name).toBe('Ryoko Renamed');
     const payload = updateArg(interaction);
     expect(embedTitle(payload)).toBe(messages.detailView.title('631', 'Ryoko Renamed'));
     expect(replyEmbed(payload)?.data.description).toContain(
@@ -107,7 +110,7 @@ describe('handleEditModalSubmit', () => {
 
     await handleEditModalSubmit(interaction, '631', repository, audit);
 
-    expect(repository.findByPassport('631')?.gym).toBe('vinewood');
+    expect((await repository.findByPassport('631'))?.gym).toBe('vinewood');
   });
 
   it('reports when nothing changed', async () => {
@@ -126,13 +129,13 @@ describe('handleEditModalSubmit', () => {
 
     await handleEditModalSubmit(interaction, '631', repository, audit);
 
-    expect(repository.findByPassport('631')?.name).toBe('Ryoko Toryu');
+    expect((await repository.findByPassport('631'))?.name).toBe('Ryoko Toryu');
     expect(replyArg(interaction).content).toBe(messages.addModal.invalidPhone);
     expect(audit.events).toEqual([]);
   });
 
   it('rejects a phone that belongs to another enrollment', async () => {
-    repository.insert({
+    await repository.insert({
       passport: '99',
       name: 'John Doe',
       phone: '(111) 222-333',
@@ -144,7 +147,7 @@ describe('handleEditModalSubmit', () => {
     const interaction = editInteraction({ phone: '111222333' });
     await handleEditModalSubmit(interaction, '631', repository, audit);
 
-    expect(repository.findByPassport('631')?.phone).toBe('(666) 123-456');
+    expect((await repository.findByPassport('631'))?.phone).toBe('(666) 123-456');
     expect(replyArg(interaction).content).toBe(
       messages.addModal.phoneInUse('(111) 222-333', '99', 'John Doe'),
     );
@@ -155,7 +158,7 @@ describe('handleEditModalSubmit', () => {
 
     await handleEditModalSubmit(interaction, '631', repository, audit);
 
-    expect(repository.findByPassport('631')?.name).toBe('Renamed');
+    expect((await repository.findByPassport('631'))?.name).toBe('Renamed');
   });
 
   it('rejects an invalid date without changing anything', async () => {
@@ -163,7 +166,7 @@ describe('handleEditModalSubmit', () => {
 
     await handleEditModalSubmit(interaction, '631', repository, audit);
 
-    expect(repository.findByPassport('631')?.enrolledAt).toBe('2026-07-22');
+    expect((await repository.findByPassport('631'))?.enrolledAt).toBe('2026-07-22');
     expect(replyArg(interaction).content).toContain('Data inválida');
   });
 
