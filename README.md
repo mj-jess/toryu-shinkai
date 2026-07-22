@@ -50,12 +50,12 @@ Padrões do projeto (código em inglês, texto de usuário em português, testes
 
 ## Funcionalidades
 
-| Botão        | Status      | Descrição                                                                                                                                                                   |
-| ------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ➕ Adicionar | ✅ Pronto   | Modal com passaporte, nome, telefone, academia (padrão: As duas) e data (padrão: hoje). Se o passaporte já existir inativo, a matrícula é **reativada** com os novos dados. |
-| ✏️ Editar    | 🚧 Em breve |                                                                                                                                                                             |
-| 🔍 Pesquisar | 🚧 Em breve |                                                                                                                                                                             |
-| 🚫 Inativar  | 🚧 Em breve | Nunca apaga o registro, só marca como inativo.                                                                                                                              |
+| Botão        | Descrição                                                                                                                                                                   |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 💪 Adicionar | Modal com passaporte, nome, telefone, academia (padrão: As duas) e data (padrão: hoje). Se o passaporte já existir inativo, a matrícula é **reativada** com os novos dados. |
+| ✏️ Editar    | Informa o passaporte e preenche **só o que quer mudar** — campos em branco mantêm o valor atual.                                                                            |
+| 🔍 Pesquisar | Por passaporte exato ou parte do nome; `*` lista as últimas 20. Mostra status (✅/💤) e totais.                                                                             |
+| 💤 Inativar  | Nunca apaga o registro, só marca como inativo — guardando quem inativou e quando.                                                                                           |
 
 ## Dados
 

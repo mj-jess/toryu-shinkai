@@ -14,7 +14,6 @@ export const gymLabels: Record<Gym, string> = {
 export const messages = {
   common: {
     unexpectedError: '❌ Ocorreu um erro inesperado. Tente novamente.',
-    underDevelopment: '🚧 Essa função ainda está em desenvolvimento.',
   },
 
   setup: {
@@ -71,5 +70,56 @@ export const messages = {
       enrolledAt: 'Data da matrícula',
       registeredBy: 'Registrado por',
     },
+  },
+
+  searchModal: {
+    title: 'Pesquisar Matrículas',
+    termLabel: 'Passaporte ou nome',
+    termDescription: 'Passaporte exato ou parte do nome. Digite * para listar as últimas 20.',
+    termPlaceholder: 'Ex: 631, Ryoko ou *',
+
+    resultsTitle: '🔍 Resultado da pesquisa',
+    recentTitle: '🕐 Últimas matrículas',
+    noResults: (term: string) => `🔍 Nenhuma matrícula encontrada para \`${term}\`.`,
+    resultLine: (phone: string, gymLabel: string, dateBR: string) =>
+      `📞 ${phone} · 🏋️ ${gymLabel} · 📅 ${dateBR}`,
+    statusActive: '✅ Ativa',
+    statusInactive: (dateBR: string) => `💤 Inativa desde ${dateBR}`,
+    totalsFooter: (active: number, inactive: number) =>
+      `Total: ${active} ativa(s) · ${inactive} inativa(s)`,
+  },
+
+  editModal: {
+    title: 'Editar Matrícula',
+    passportLabel: 'Passaporte',
+    passportDescription: 'Identifica a matrícula — o passaporte em si não é alterado',
+    optionalHint: 'Deixe em branco para manter o valor atual',
+    nameLabel: 'Novo nome',
+    phoneLabel: 'Novo telefone',
+    gymLabel: 'Academia',
+    keepGymOption: '— não alterar —',
+    dateLabel: 'Nova data da matrícula',
+
+    notFound: (passport: string) =>
+      `❌ Nenhuma matrícula encontrada para o passaporte \`${passport}\`. ` +
+      'Confira o número ou use 🔍 Pesquisar.',
+    nothingToChange: 'ℹ️ Nenhum campo foi preenchido — nada para alterar.',
+    updatedTitle: '✏️ Matrícula atualizada!',
+    changedFieldsLabel: 'Campos alterados',
+  },
+
+  deactivateModal: {
+    title: 'Inativar Matrícula',
+    passportLabel: 'Passaporte',
+    passportPlaceholder: 'Ex: 631',
+
+    notFound: (passport: string) =>
+      `❌ Nenhuma matrícula encontrada para o passaporte \`${passport}\`. ` +
+      'Confira o número ou use 🔍 Pesquisar.',
+    alreadyInactive: (name: string) => `ℹ️ A matrícula de **${name}** já está inativa.`,
+    deactivatedTitle: '💤 Matrícula inativada',
+    deactivatedNote:
+      'O registro não foi apagado — se a pessoa se matricular de novo, será reativado automaticamente.',
+    deactivatedBy: 'Inativada por',
   },
 } as const;

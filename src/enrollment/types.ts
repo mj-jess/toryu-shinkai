@@ -26,6 +26,17 @@ export interface Enrollment {
   enrolledAt: string;
   active: boolean;
   registeredBy: string | null;
+  deactivatedBy: string | null;
+  deactivatedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Fields that can be changed after enrollment; undefined means "keep current value". */
+export interface EnrollmentUpdate {
+  passport: string;
+  name?: string;
+  phone?: string;
+  gym?: Gym;
+  enrolledAt?: string;
 }

@@ -1,14 +1,10 @@
 import type { Database } from 'better-sqlite3';
-import {
-  EmbedBuilder,
-  type InteractionReplyOptions,
-  type ModalSubmitInteraction,
-} from 'discord.js';
-import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDatabase } from '../database.js';
 import { messages } from '../messages.js';
 import { handleAddModalSubmit } from './add-modal.js';
 import { EnrollmentRepository } from './repository.js';
+import { embedTitle, fakeModalInteraction, replyArg } from './test-utils.js';
 
 interface FormValues {
   passport: string;
@@ -29,31 +25,16 @@ function buildFormValues(overrides: Partial<FormValues> = {}): FormValues {
   };
 }
 
-function fakeInteraction(values: FormValues): ModalSubmitInteraction {
-  const textFields: Record<string, string> = {
-    passport: values.passport,
-    name: values.name,
-    phone: values.phone,
-    enrolledAt: values.enrolledAt,
-  };
-
-  return {
-    fields: {
-      getTextInputValue: (id: string) => textFields[id] ?? '',
-      getStringSelectValues: () => [values.gym],
+function addInteraction(values: FormValues) {
+  return fakeModalInteraction({
+    text: {
+      passport: values.passport,
+      name: values.name,
+      phone: values.phone,
+      enrolledAt: values.enrolledAt,
     },
-    user: { tag: 'tester#0', toString: () => '<@42>' },
-    reply: vi.fn().mockResolvedValue(undefined),
-  } as unknown as ModalSubmitInteraction;
-}
-
-function replyArg(interaction: ModalSubmitInteraction): InteractionReplyOptions {
-  return (interaction.reply as Mock).mock.calls[0]?.[0] as InteractionReplyOptions;
-}
-
-function embedTitle(reply: InteractionReplyOptions): string | undefined {
-  const [embed] = reply.embeds ?? [];
-  return embed instanceof EmbedBuilder ? embed.data.title : undefined;
+    selects: { gym: [values.gym] },
+  });
 }
 
 describe('handleAddModalSubmit', () => {
@@ -70,7 +51,7 @@ describe('handleAddModalSubmit', () => {
   });
 
   it('creates an enrollment from valid input', async () => {
-    const interaction = fakeInteraction(buildFormValues());
+    const interaction = addInteraction(buildFormValues());
 
     await handleAddModalSubmit(interaction, repository);
 
@@ -86,7 +67,7 @@ describe('handleAddModalSubmit', () => {
   });
 
   it('trims passport and name', async () => {
-    const interaction = fakeInteraction(buildFormValues({ passport: ' 12345 ', name: ' John ' }));
+    const interaction = addInteraction(buildFormValues({ passport: ' 12345 ', name: ' John ' }));
 
     await handleAddModalSubmit(interaction, repository);
 
@@ -94,7 +75,7 @@ describe('handleAddModalSubmit', () => {
   });
 
   it('rejects an invalid phone without saving', async () => {
-    const interaction = fakeInteraction(buildFormValues({ phone: '123' }));
+    const interaction = addInteraction(buildFormValues({ phone: '123' }));
 
     await handleAddModalSubmit(interaction, repository);
 
@@ -103,7 +84,7 @@ describe('handleAddModalSubmit', () => {
   });
 
   it('rejects an invalid date without saving', async () => {
-    const interaction = fakeInteraction(buildFormValues({ enrolledAt: '31/02/2026' }));
+    const interaction = addInteraction(buildFormValues({ enrolledAt: '31/02/2026' }));
 
     await handleAddModalSubmit(interaction, repository);
 
@@ -112,9 +93,9 @@ describe('handleAddModalSubmit', () => {
   });
 
   it('warns when the passport already has an active enrollment', async () => {
-    await handleAddModalSubmit(fakeInteraction(buildFormValues()), repository);
+    await handleAddModalSubmit(addInteraction(buildFormValues()), repository);
 
-    const second = fakeInteraction(buildFormValues({ name: 'Someone Else' }));
+    const second = addInteraction(buildFormValues({ name: 'Someone Else' }));
     await handleAddModalSubmit(second, repository);
 
     expect(repository.findByPassport('12345')?.name).toBe('John Doe');
@@ -122,16 +103,18 @@ describe('handleAddModalSubmit', () => {
   });
 
   it('reactivates an inactive enrollment with the new data', async () => {
-    await handleAddModalSubmit(fakeInteraction(buildFormValues()), repository);
-    repository.deactivate('12345');
+    await handleAddModalSubmit(addInteraction(buildFormValues()), repository);
+    repository.deactivate('12345', 'tester#0');
 
-    const again = fakeInteraction(buildFormValues({ name: 'John Returns', gym: 'sandy' }));
+    const again = addInteraction(buildFormValues({ name: 'John Returns', gym: 'sandy' }));
     await handleAddModalSubmit(again, repository);
 
     expect(repository.findByPassport('12345')).toMatchObject({
       name: 'John Returns',
       gym: 'sandy',
       active: true,
+      deactivatedBy: null,
+      deactivatedAt: null,
     });
     expect(embedTitle(replyArg(again))).toBe(messages.addModal.reactivatedTitle);
   });
