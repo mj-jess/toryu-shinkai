@@ -21,21 +21,30 @@ Discord bot for Jess's GTA RP family server (guild: Tōryū Shinkai). First feat
 - Renewals view (🕒): active enrollments older than the selected period (1 month default — a fixed 30 days — or 2 weeks), most overdue first with "(há N dias)"; record card gains a 💰 Renovar button that sets the enrollment date to today (audited as "Matrícula renovada"). Prev/next/back are shared with the browse list — the session tracks which view is active.
 - Audit log channel (#log-matriculas): `/academia-log-setup` run inside a channel registers it (stored in the `settings` table); every create/edit/deactivate/reactivate posts a color-coded embed there — vertical `Chave: valor` list (full snapshot; on edits changed fields render as `before → after` inline), author line with Twemoji PNG icon (emoji in embed titles can't be baseline-aligned). Add replies with a short confirmation linking to the audit message (falls back to the full embed when no log channel is set). Audit failures never break the enrollment flow.
 
-**Not yet done / next candidates**: web dashboard (decided 2026-07-22: read-only v1 — enrollments, renewals queue, audit history — Next.js in a `web/` folder of this repo, deployed on Vercel free, Discord OAuth login restricted to an ID allowlist; audit history needs a new `audit_events` table first), more family-admin features as Jess requests them.
+**Dashboard v1 built locally (2026-07-22)** — `web/` npm workspace, not yet deployed:
+
+- Next.js 16 (App Router) + MUI v9 + MUI X DataGrid (free tier) + Auth.js (next-auth v5 beta), dark/light toggle (dark default), all UI text in `web/src/messages.ts`
+- Login with Discord OAuth restricted to `ALLOWED_DISCORD_IDS` (comma-separated env; may become a UI-managed table later). Denied accounts land back on `/login?error=AccessDenied` with a friendly message
+- Layout: fixed navbar + sidebar (permanent on desktop, drawer on mobile) + footer + content area; SPA navigation via next/link
+- **Matrículas** page: read-only DataGrid (columns passaporte/nome/telefone/status/ações — sort, per-column filter, quick search, pagination, pt-BR locale) + eye action → read-only detail page (labeled `Chave: valor` fields per Jess's UI rule)
+- Reads the same Neon DB via `drizzle-orm/neon-http` (`@neondatabase/serverless`) — schema/types/labels imported from the bot via the `@bot/*` → `src/` tsconfig alias (single source of truth; only pure modules: `db/schema`, `enrollment/types`, `enrollment/format`, `messages`)
+- `npm run seed:dev` resets the **dev** branch with 24 test enrollments (guarded: refuses to run against the prod endpoint)
+
+**Not yet done / next candidates**: deploy `web/` on Vercel (prod Discord app OAuth redirect + Neon `main`), Renovações page, audit history page (needs the `audit_events` table), allowlist management UI, more family-admin features as Jess requests them.
 
 ## Production hosting (since 2026-07-22)
 
 - **Oracle Cloud Always Free VM**: Ubuntu 24.04, `VM.Standard.E2.1.Micro` (1 OCPU/1GB + 1GB swap), region sa-saopaulo-1, public IP `146.235.44.150`, SSH key `~/.ssh/oracle-bot.key` (user `ubuntu`).
 - Bot managed by systemd (`familia-bot.service`): starts on boot, `Restart=always`, logs via `journalctl -u familia-bot`. Repo cloned at `~/toryu-shinkai` via a read-only GitHub deploy key.
 - **Database: Neon Postgres** (free tier), project "Toryu Shinkai" (`late-wind-42376214`, aws sa-east-1, account mj-jess). Branch `main` = production, branch `dev` = development. The old SQLite file remains on the VM as `data/family.db.sqlite-backup` (pre-migration snapshot, safe to delete later).
-- Update flow: `ssh -i ~/.ssh/oracle-bot.key ubuntu@146.235.44.150 'cd toryu-shinkai && git pull && npm ci && sudo systemctl restart familia-bot'`. Run `npm run deploy` (prod) / `npm run deploy:dev` (dev app) only when slash commands change. Day-to-day commands are in README.md.
+- Update flow: `ssh -i ~/.ssh/oracle-bot.key ubuntu@146.235.44.150 'cd toryu-shinkai && git pull && npm ci --workspaces=false && sudo systemctl restart familia-bot'` (`--workspaces=false` skips the dashboard deps — the 1GB VM only runs the bot). Run `npm run deploy` (prod) / `npm run deploy:dev` (dev app) only when slash commands change. Day-to-day commands are in README.md.
 - **Dev/prod split — two Discord apps + two DB branches**: `.env` = production (Tōryū Bot `1529480366069383408` + Neon `main`; used by the VM, `npm start`, `npm run deploy`). `.env.local` = development (Tōryū Bot Dev `1529575914307059855` + Neon `dev`; used by `npm run dev`, `npm run deploy:dev`). Interactions route per application, so dev clicks can never touch prod data. Never run the prod token locally (double-handling).
 
 ## Setting up on a new machine
 
 After cloning, two things do NOT come with the repo:
 
-1. **`.env` / `.env.local`** (gitignored) — copy from `.env.example` and fill `DISCORD_TOKEN`, `CLIENT_ID`, `GUILD_ID`, `DATABASE_URL` for each environment (see "Production hosting" for which app/branch goes where). Tokens live in the Discord Developer Portal (account mj-jess); connection strings in the Neon dashboard. GUILD_ID `1399382584101703723`. There is no local data file to copy — all data is in Neon.
+1. **`.env` / `.env.local` / `web/.env.local`** (gitignored) — copy from the `.env.example` files and fill in (see "Production hosting" for which app/branch goes where). Tokens live in the Discord Developer Portal (account mj-jess); connection strings in the Neon dashboard. GUILD_ID `1399382584101703723`. For the dashboard, `AUTH_DISCORD_SECRET` comes from the app's OAuth2 page (register the redirect `http://localhost:3000/api/auth/callback/discord` on the dev app). There is no local data file to copy — all data is in Neon.
 2. **Git credentials** — the remote is pinned to the mj-jess account. If the machine has multiple GitHub accounts on `gh`, reproduce the repo-local helper:
    ```bash
    git config credential.helper '!f() { echo username=mj-jess; echo "password=$(gh auth token --user mj-jess)"; }; f'
@@ -77,6 +86,17 @@ Then: `npm install` → `npm run dev` (local dev bot). Production runs on the VM
   - `repository.ts` (queries), `format.ts` (phone/date helpers), `display.ts` (shared embed pieces), `ids.ts` (custom ID build/parse), `types.ts`
 - New features follow the same shape: one directory per feature, strings in `messages.ts`, repository pattern for DB access, custom IDs namespaced via an `ids.ts`.
 
+### Dashboard (`web/` — npm workspace)
+
+- `web/src/messages.ts` — every Portuguese string of the dashboard (same rule as the bot).
+- `web/src/auth.ts` — Auth.js config (Discord provider + `ALLOWED_DISCORD_IDS` allowlist in the `signIn` callback); `web/src/session.ts` — `requireUser()` guard called in the dashboard layout and every page.
+- `web/src/db.ts` — read-only queries over `drizzle-orm/neon-http`; imports the schema via `@bot/db/schema`.
+- `web/src/app/` — App Router: `login/`, `(dashboard)/matriculas` (grid) and `(dashboard)/matriculas/[passport]` (detail); `actions.ts` holds the `signIn`/`signOut` server actions.
+- `web/src/components/` — client components (`dashboard-shell` with navbar/sidebar/footer, `enrollments-table` DataGrid, `color-mode-toggle`, `button-link`).
+- Import rule: `@bot/*` may only pull **pure** bot modules (schema, types, format, messages) — never anything that imports `discord.js` or `pg`.
+- Server components must not pass functions (e.g. `component={Link}`) to client components — wrap the pairing in a client component like `button-link.tsx`.
+- **TypeScript nuance**: the repo root has `typescript@7` (native compiler) which the bot uses, but Next needs the classic TS JS API, so `web/` pins `typescript@^5.9` as its own devDependency (nested in `web/node_modules`).
+
 ## Migrations
 
 - Managed by **drizzle-kit**: edit `src/db/schema.ts`, run `npm run db:generate` — it emits SQL to `drizzle/` (committed). Applied automatically on boot (bot) and in `createTestDatabase()` (tests).
@@ -104,4 +124,10 @@ Then: `npm install` → `npm run dev` (local dev bot). Production runs on the VM
 
 ```bash
 npm run typecheck && npm test && npm run format:check
+```
+
+When the task touched `web/`, also:
+
+```bash
+npm run typecheck -w web && npm run build -w web
 ```

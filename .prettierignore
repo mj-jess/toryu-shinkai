@@ -1,2 +1,4 @@
 data/
 package-lock.json
+.next/
+web/next-env.d.ts

@@ -25,10 +25,11 @@ _(As permissões incluem: ver canais, enviar mensagens e embeds.)_
 
 Dois ambientes, dois arquivos de env (ambos gitignorados):
 
-| Arquivo      | Bot                  | Banco (Neon)  | Scripts                       |
-| ------------ | -------------------- | ------------- | ----------------------------- |
-| `.env`       | Tōryū Bot (produção) | branch `main` | `npm start`, `npm run deploy` |
-| `.env.local` | Tōryū Bot Dev        | branch `dev`  | `npm run dev`, `deploy:dev`   |
+| Arquivo          | Aplicação                 | Banco (Neon)  | Scripts                       |
+| ---------------- | ------------------------- | ------------- | ----------------------------- |
+| `.env`           | Tōryū Bot (produção)      | branch `main` | `npm start`, `npm run deploy` |
+| `.env.local`     | Tōryū Bot Dev             | branch `dev`  | `npm run dev`, `deploy:dev`   |
+| `web/.env.local` | Dashboard web (dev local) | branch `dev`  | `npm run dev -w web`          |
 
 ```bash
 cp .env.example .env.local  # edite com o token do bot dev + connection string do branch dev
@@ -47,6 +48,9 @@ npm test               # roda os testes (Vitest)
 npm run test:watch     # testes em modo watch
 npm run format         # formata o código (Prettier)
 npm run format:check   # só verifica a formatação
+npm run seed:dev       # reseta o banco DEV com 24 matrículas de teste
+npm run typecheck -w web   # tipos do dashboard
+npm run build -w web       # build de produção do dashboard
 ```
 
 Padrões do projeto (código em inglês, texto de usuário em português, testes, etc.): veja o [CLAUDE.md](CLAUDE.md).
@@ -75,6 +79,23 @@ Dentro do card de um registro:
 Validações: passaporte e telefone são **únicos** (a mensagem de erro informa quem já usa o número).
 
 Auditoria: rode `/academia-log-setup` dentro de um canal (ex: **#log-matriculas**) e toda ação — criar, editar, inativar, reativar, renovar — vira um embed colorido lá, com os dados completos e quem fez.
+
+## Dashboard web (`web/`)
+
+Painel em **Next.js + Material UI** (workspace npm dentro do repo) que lê o mesmo banco do bot — hoje somente leitura: login com Discord (restrito à allowlist `ALLOWED_DISCORD_IDS`) e a página **Matrículas** (tabela com busca, filtro por coluna, ordenação e paginação + página de detalhe).
+
+```bash
+cp web/.env.example web/.env.local   # preencha (veja o comentário em cada variável)
+npm run dev -w web                   # http://localhost:3000
+```
+
+Requisitos no Discord Developer Portal (uma vez, por aplicação):
+
+1. Abra a aplicação (dev: **Tōryū Bot Dev**) → **OAuth2**.
+2. Em **Redirects**, adicione `http://localhost:3000/api/auth/callback/discord`.
+3. Copie o **Client Secret** para `AUTH_DISCORD_SECRET`.
+
+O dashboard reaproveita o schema/tipos do bot via alias `@bot/*` → `src/` — uma fonte de verdade só. Deploy em produção (Vercel + branch `main` do Neon) é o próximo passo.
 
 ## Dados
 
@@ -106,7 +127,8 @@ Da sua máquina (chave SSH em `~/.ssh/oracle-bot.key`):
 ssh -i ~/.ssh/oracle-bot.key ubuntu@146.235.44.150 'journalctl -u familia-bot -f'
 
 # atualizar a produção depois de um push
-ssh -i ~/.ssh/oracle-bot.key ubuntu@146.235.44.150 'cd toryu-shinkai && git pull && npm ci && sudo systemctl restart familia-bot'
+# (--workspaces=false instala só as deps do bot — a VM não precisa das do dashboard)
+ssh -i ~/.ssh/oracle-bot.key ubuntu@146.235.44.150 'cd toryu-shinkai && git pull && npm ci --workspaces=false && sudo systemctl restart familia-bot'
 
 # status / reiniciar / parar
 ssh -i ~/.ssh/oracle-bot.key ubuntu@146.235.44.150 'systemctl status familia-bot --no-pager'

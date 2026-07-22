@@ -3,12 +3,16 @@
   "version": "1.0.0",
   "description": "Bot de administração do servidor da família (GTA RP)",
   "type": "module",
+  "workspaces": [
+    "web"
+  ],
   "scripts": {
     "start": "tsx --env-file=.env src/index.ts",
     "dev": "tsx --env-file=.env.local src/index.ts",
     "deploy": "tsx --env-file=.env src/deploy-commands.ts",
     "deploy:dev": "tsx --env-file=.env.local src/deploy-commands.ts",
     "db:generate": "drizzle-kit generate",
+    "seed:dev": "tsx --env-file=.env.local src/seed-dev.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
