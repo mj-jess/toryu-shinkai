@@ -4,8 +4,10 @@ import { createDatabase } from '../database.js';
 import { messages } from '../messages.js';
 import { handleEnrollmentInteraction, type BrowseContext } from './browse-handlers.js';
 import { BrowseSessions } from './browse-session.js';
+import { formatDateBR, getTodayISO, isoDaysAgo } from './format.js';
 import { EnrollmentRepository } from './repository.js';
 import {
+  browseState,
   embedFieldValue,
   embedTitle,
   fakeAuditLog,
@@ -142,8 +144,94 @@ describe('handleEnrollmentInteraction', () => {
     ]);
   });
 
+  it('opens the renewals list on the 1 month default', async () => {
+    ctx.repository.insert(
+      buildInput({ passport: '900', name: 'Old Timer', enrolledAt: isoDaysAgo(40) }),
+    );
+    ctx.repository.insert(
+      buildInput({ passport: '901', name: 'Fresh Member', enrolledAt: isoDaysAgo(3) }),
+    );
+
+    const interaction = fakeButtonInteraction('enrollment:due');
+    await handleEnrollmentInteraction(interaction, ctx);
+
+    const payload = replyArg(interaction);
+    expect(embedTitle(payload)).toBe(messages.dueView.title);
+    const description = replyEmbed(payload)?.data.description ?? '';
+    expect(description).toContain('Old Timer');
+    expect(description).not.toContain('Fresh Member');
+    expect(ctx.sessions.get('user-1')).toMatchObject({ view: 'due', period: '1m', page: 0 });
+  });
+
+  it('switches the renewal period to 2 weeks', async () => {
+    ctx.repository.insert(
+      buildInput({ passport: '902', name: 'Three Weeks Ago', enrolledAt: isoDaysAgo(21) }),
+    );
+    ctx.sessions.set('user-1', browseState({ view: 'due', period: '1m' }));
+
+    const interaction = fakeButtonInteraction('enrollment:due-period:2w');
+    await handleEnrollmentInteraction(interaction, ctx);
+
+    const description = replyEmbed(updateArg(interaction))?.data.description ?? '';
+    expect(description).toContain('Three Weeks Ago');
+    expect(ctx.sessions.get('user-1').period).toBe('2w');
+  });
+
+  it('renews an enrollment to today from the record card, with audit', async () => {
+    ctx.repository.insert(
+      buildInput({ passport: '903', name: 'Renew Me', enrolledAt: isoDaysAgo(40) }),
+    );
+
+    const interaction = fakeButtonInteraction('enrollment:renew:903');
+    await handleEnrollmentInteraction(interaction, ctx);
+
+    expect(ctx.repository.findByPassport('903')?.enrolledAt).toBe(getTodayISO());
+    expect(replyEmbed(updateArg(interaction))?.data.description).toBe(
+      messages.detailView.renewedNote,
+    );
+    expect(audit.events).toMatchObject([
+      {
+        action: 'renewed',
+        enrollment: { passport: '903' },
+        changes: [
+          {
+            label: messages.addModal.fields.enrolledAt,
+            before: formatDateBR(isoDaysAgo(40)),
+            after: formatDateBR(getTodayISO()),
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('renewing an enrollment already dated today changes nothing', async () => {
+    ctx.repository.insert(
+      buildInput({ passport: '904', name: 'Fresh Pay', enrolledAt: getTodayISO() }),
+    );
+
+    const interaction = fakeButtonInteraction('enrollment:renew:904');
+    await handleEnrollmentInteraction(interaction, ctx);
+
+    expect(replyEmbed(updateArg(interaction))?.data.description).toBe(
+      messages.detailView.renewedAlreadyNote,
+    );
+    expect(audit.events).toEqual([]);
+  });
+
+  it('goes back to the renewals list when the session is on the due view', async () => {
+    ctx.repository.insert(
+      buildInput({ passport: '905', name: 'Due Person', enrolledAt: isoDaysAgo(40) }),
+    );
+    ctx.sessions.set('user-1', browseState({ view: 'due', period: '1m' }));
+
+    const interaction = fakeButtonInteraction('enrollment:back');
+    await handleEnrollmentInteraction(interaction, ctx);
+
+    expect(embedTitle(updateArg(interaction))).toBe(messages.dueView.title);
+  });
+
   it('goes back from the card to the list keeping the session state', async () => {
-    ctx.sessions.set('user-1', { page: 0, filter: 'ryo' });
+    ctx.sessions.set('user-1', browseState({ filter: 'ryo' }));
 
     const interaction = fakeButtonInteraction('enrollment:back');
     await handleEnrollmentInteraction(interaction, ctx);
@@ -181,7 +269,7 @@ describe('handleEnrollmentInteraction', () => {
   });
 
   it('clears the filter', async () => {
-    ctx.sessions.set('user-1', { page: 0, filter: 'john' });
+    ctx.sessions.set('user-1', browseState({ filter: 'john' }));
 
     const interaction = fakeButtonInteraction('enrollment:clear-filter');
     await handleEnrollmentInteraction(interaction, ctx);

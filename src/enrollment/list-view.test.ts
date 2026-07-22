@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDatabase } from '../database.js';
 import { messages } from '../messages.js';
 import { buildListView, PAGE_SIZE } from './list-view.js';
+import { browseState } from './test-utils.js';
 import { EnrollmentRepository } from './repository.js';
 
 interface ButtonJSON {
@@ -43,7 +44,7 @@ describe('buildListView', () => {
   }
 
   it('shows a friendly empty state without a select', () => {
-    const view = buildListView(repository, { page: 0, filter: '' });
+    const view = buildListView(repository, browseState({ page: 0 }));
 
     expect(view.payload.embeds[0]?.data.description).toBe(messages.listView.emptyAll);
     expect(view.payload.components).toHaveLength(1); // only the buttons row
@@ -52,7 +53,7 @@ describe('buildListView', () => {
 
   it('lists a page with labeled lines and a footer', () => {
     seed(3);
-    const view = buildListView(repository, { page: 0, filter: '' });
+    const view = buildListView(repository, browseState({ page: 0 }));
 
     const description = view.payload.embeds[0]?.data.description ?? '';
     expect(description).toContain('**0 — Person 00**');
@@ -62,7 +63,7 @@ describe('buildListView', () => {
 
   it('hides pagination buttons for a single page', () => {
     seed(3);
-    const view = buildListView(repository, { page: 0, filter: '' });
+    const view = buildListView(repository, browseState({ page: 0 }));
 
     expect(buttonRow(view).map((b) => b.custom_id)).toEqual(['enrollment:filter']);
   });
@@ -70,12 +71,12 @@ describe('buildListView', () => {
   it('paginates and disables the buttons at the edges', () => {
     seed(PAGE_SIZE + 2);
 
-    const first = buildListView(repository, { page: 0, filter: '' });
+    const first = buildListView(repository, browseState({ page: 0 }));
     const firstButtons = buttonRow(first);
     expect(firstButtons.find((b) => b.custom_id === 'enrollment:prev')?.disabled).toBe(true);
     expect(firstButtons.find((b) => b.custom_id === 'enrollment:next')?.disabled).toBe(false);
 
-    const last = buildListView(repository, { page: 1, filter: '' });
+    const last = buildListView(repository, browseState({ page: 1 }));
     const lastButtons = buttonRow(last);
     expect(lastButtons.find((b) => b.custom_id === 'enrollment:prev')?.disabled).toBe(false);
     expect(lastButtons.find((b) => b.custom_id === 'enrollment:next')?.disabled).toBe(true);
@@ -85,7 +86,7 @@ describe('buildListView', () => {
   it('clamps an out-of-range page into the valid range', () => {
     seed(PAGE_SIZE + 2);
 
-    const view = buildListView(repository, { page: 99, filter: '' });
+    const view = buildListView(repository, browseState({ page: 99 }));
 
     expect(view.state.page).toBe(1);
     expect(view.payload.embeds[0]?.data.footer?.text).toContain('Página 2/2');
@@ -93,7 +94,7 @@ describe('buildListView', () => {
 
   it('shows the filter in the footer and offers clearing it', () => {
     seed(3);
-    const view = buildListView(repository, { page: 0, filter: 'Person' });
+    const view = buildListView(repository, browseState({ filter: 'Person' }));
 
     expect(view.payload.embeds[0]?.data.footer?.text).toContain(
       messages.listView.filterNote('Person'),

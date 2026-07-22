@@ -7,7 +7,7 @@ import type { Enrollment } from './types.js';
 export const AUDIT_SETUP_COMMAND_NAME = 'academia-log-setup';
 export const AUDIT_CHANNEL_SETTING_KEY = 'enrollment.audit_channel_id';
 
-export type AuditAction = 'created' | 'updated' | 'deactivated' | 'reactivated';
+export type AuditAction = 'created' | 'updated' | 'deactivated' | 'reactivated' | 'renewed';
 
 /** One edited field, with display values ready for the log message. */
 export interface AuditChange {
@@ -37,9 +37,10 @@ const ACTION_COLORS: Record<AuditAction, number> = {
   updated: 0xf1c40f,
   deactivated: 0xe74c3c,
   reactivated: 0x3498db,
+  renewed: 0x1abc9c,
 };
 
-// Twemoji PNGs (💪 ✏️ 💤 🔄) as author icons — a real image aligns with the
+// Twemoji PNGs (💪 ✏️ 💤 🔄 💰) as author icons — a real image aligns with the
 // text, unlike an emoji inside a title, whose rendering Discord controls.
 const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72';
 const ACTION_ICONS: Record<AuditAction, string> = {
@@ -47,6 +48,7 @@ const ACTION_ICONS: Record<AuditAction, string> = {
   updated: `${TWEMOJI_BASE}/270f.png`,
   deactivated: `${TWEMOJI_BASE}/1f4a4.png`,
   reactivated: `${TWEMOJI_BASE}/1f504.png`,
+  renewed: `${TWEMOJI_BASE}/1f4b0.png`,
 };
 
 /**

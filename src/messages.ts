@@ -29,10 +29,12 @@ export const messages = {
       '',
       '💪 **Adicionar** — registrar uma nova matrícula',
       '📋 **Matrículas** — ver, pesquisar, editar e inativar registros',
+      '🕒 **Renovações** — ver quem está com a matrícula vencida e precisa renovar',
     ].join('\n'),
     buttons: {
       add: 'Adicionar',
       browse: 'Matrículas',
+      due: 'Renovações',
     },
   },
 
@@ -98,6 +100,20 @@ export const messages = {
     termPlaceholder: 'Ex: 631 ou Ryoko',
   },
 
+  dueView: {
+    title: '🕒 Renovações',
+    header: (periodLabel: string) => `Matrículas ativas com mais de **${periodLabel}**:`,
+    empty: (periodLabel: string) =>
+      `Ninguém está com matrícula vencida há mais de ${periodLabel}. 🎉`,
+    entryLine: (dateBR: string, days: number, gymLabel: string) =>
+      `Matriculado em: ${dateBR} (há ${days} dias) · Academia: ${gymLabel}`,
+    periodNote: (periodLabel: string) => `Período: ${periodLabel}`,
+    periodLabels: {
+      '2w': '2 semanas',
+      '1m': '1 mês',
+    },
+  },
+
   detailView: {
     title: (passport: string, name: string) => `${passport} — ${name}`,
     statusLabel: 'Status',
@@ -108,12 +124,15 @@ export const messages = {
     updatedNote: '✏️ Matrícula atualizada!',
     reactivatedNote: '🔄 Matrícula reativada!',
     deactivatedNote: '💤 Matrícula inativada. O registro não foi apagado.',
+    renewedNote: '💰 Matrícula renovada — Matriculado em atualizado para hoje!',
+    renewedAlreadyNote: 'ℹ️ A matrícula já está com a data de hoje.',
     notFound: 'ℹ️ Matrícula não encontrada — a lista foi atualizada.',
     confirmDeactivation: (name: string) =>
       `Tem certeza que deseja **inativar** a matrícula de **${name}**?\n` +
       'O registro não será apagado — poderá ser reativado depois.',
     buttons: {
       edit: 'Editar',
+      renew: 'Renovar',
       deactivate: 'Inativar',
       reactivate: 'Reativar',
       back: 'Voltar',
@@ -140,6 +159,7 @@ export const messages = {
       updated: 'Matrícula editada',
       deactivated: 'Matrícula inativada',
       reactivated: 'Matrícula reativada',
+      renewed: 'Matrícula renovada',
     },
     byLabel: 'Por',
     change: (before: string, after: string) => `${before} → ${after}`,

@@ -1,9 +1,18 @@
+/** Which list the user is looking at: all enrollments or the renewals (due) view. */
+export type BrowseView = 'browse' | 'due';
+
+export type DuePeriod = '2w' | '1m';
+
 export interface BrowseState {
+  view: BrowseView;
   page: number;
+  /** Browse view only. */
   filter: string;
+  /** Due view only. */
+  period: DuePeriod;
 }
 
-const DEFAULT_STATE: BrowseState = { page: 0, filter: '' };
+const DEFAULT_STATE: BrowseState = { view: 'browse', page: 0, filter: '', period: '1m' };
 
 /**
  * Per-user navigation state for the enrollment browser (current page and filter).

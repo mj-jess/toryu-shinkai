@@ -45,11 +45,12 @@ describe('buildDetailView', () => {
     expect(fieldValue(view, labels.registeredBy)).toBe('mjmylie');
   });
 
-  it('offers edit, deactivate, and back for an active record', () => {
+  it('offers edit, renew, deactivate, and back for an active record', () => {
     const view = buildDetailView(buildEnrollment());
 
     expect(buttonIds(view)).toEqual([
       'enrollment:edit:631',
+      'enrollment:renew:631',
       'enrollment:deact:631',
       'enrollment:back',
     ]);
@@ -71,6 +72,7 @@ describe('buildDetailView', () => {
       messages.detailView.deactivationInfo('admin#1', '23/07/2026'),
     );
     expect(buttonIds(view)).toContain('enrollment:react:631');
+    expect(buttonIds(view)).not.toContain('enrollment:renew:631');
   });
 
   it('renders a highlighted note when provided', () => {

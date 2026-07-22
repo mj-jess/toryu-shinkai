@@ -64,17 +64,32 @@ export function buildDetailView(enrollment: Enrollment, note?: string): ViewPayl
       .setLabel(detail.buttons.edit)
       .setEmoji('✏️')
       .setStyle(ButtonStyle.Primary),
-    enrollment.active
-      ? new ButtonBuilder()
-          .setCustomId(enrollmentId('deact', enrollment.passport))
-          .setLabel(detail.buttons.deactivate)
-          .setEmoji('💤')
-          .setStyle(ButtonStyle.Danger)
-      : new ButtonBuilder()
-          .setCustomId(enrollmentId('react', enrollment.passport))
-          .setLabel(detail.buttons.reactivate)
-          .setEmoji('🔄')
-          .setStyle(ButtonStyle.Success),
+  );
+
+  if (enrollment.active) {
+    buttons.addComponents(
+      new ButtonBuilder()
+        .setCustomId(enrollmentId('renew', enrollment.passport))
+        .setLabel(detail.buttons.renew)
+        .setEmoji('💰')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(enrollmentId('deact', enrollment.passport))
+        .setLabel(detail.buttons.deactivate)
+        .setEmoji('💤')
+        .setStyle(ButtonStyle.Danger),
+    );
+  } else {
+    buttons.addComponents(
+      new ButtonBuilder()
+        .setCustomId(enrollmentId('react', enrollment.passport))
+        .setLabel(detail.buttons.reactivate)
+        .setEmoji('🔄')
+        .setStyle(ButtonStyle.Success),
+    );
+  }
+
+  buttons.addComponents(
     new ButtonBuilder()
       .setCustomId(enrollmentId('back'))
       .setLabel(detail.buttons.back)

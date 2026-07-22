@@ -50,6 +50,12 @@ interface FilterParams {
   name: string;
 }
 
+interface ListDueParams {
+  cutoff: string;
+  limit: number;
+  offset: number;
+}
+
 export class EnrollmentRepository {
   private readonly findByPassportStmt: Statement<[string], EnrollmentRow>;
   private readonly findByPhoneStmt: Statement<[string], EnrollmentRow>;
@@ -60,6 +66,8 @@ export class EnrollmentRepository {
   private readonly activateStmt: Statement<[string]>;
   private readonly listStmt: Statement<[ListParams], EnrollmentRow>;
   private readonly countStmt: Statement<[FilterParams], { total: number }>;
+  private readonly listDueStmt: Statement<[ListDueParams], EnrollmentRow>;
+  private readonly countDueStmt: Statement<[{ cutoff: string }], { total: number }>;
 
   constructor(db: Database) {
     this.findByPassportStmt = db.prepare('SELECT * FROM enrollments WHERE passport = ?');
@@ -119,6 +127,19 @@ export class EnrollmentRepository {
     this.countStmt = db.prepare(`
       SELECT COUNT(*) AS total FROM enrollments WHERE ${filterClause}
     `);
+
+    const dueClause = 'active = 1 AND enrolled_at <= @cutoff';
+
+    this.listDueStmt = db.prepare(`
+      SELECT * FROM enrollments
+      WHERE ${dueClause}
+      ORDER BY enrolled_at, id
+      LIMIT @limit OFFSET @offset
+    `);
+
+    this.countDueStmt = db.prepare(`
+      SELECT COUNT(*) AS total FROM enrollments WHERE ${dueClause}
+    `);
   }
 
   findByPassport(passport: string): Enrollment | undefined {
@@ -170,6 +191,18 @@ export class EnrollmentRepository {
     const total = this.countStmt.get(params)?.total ?? 0;
     const items = this.listStmt
       .all({ ...params, limit: pageSize, offset: page * pageSize })
+      .map(toEnrollment);
+    return { items, total };
+  }
+
+  /**
+   * Pages through active enrollments due for renewal — enrolled on or before
+   * `cutoffIso` (yyyy-mm-dd) — oldest enrollment first.
+   */
+  listDue(cutoffIso: string, page: number, pageSize: number): EnrollmentPage {
+    const total = this.countDueStmt.get({ cutoff: cutoffIso })?.total ?? 0;
+    const items = this.listDueStmt
+      .all({ cutoff: cutoffIso, limit: pageSize, offset: page * pageSize })
       .map(toEnrollment);
     return { items, total };
   }

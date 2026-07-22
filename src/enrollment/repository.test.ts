@@ -157,4 +157,35 @@ describe('EnrollmentRepository', () => {
       expect(repository.list('nobody', 0, 10)).toEqual({ items: [], total: 0 });
     });
   });
+
+  describe('listDue', () => {
+    beforeEach(() => {
+      repository.insert(buildInput({ passport: '1', name: 'Oldest', enrolledAt: '2026-04-01' }));
+      repository.insert(buildInput({ passport: '2', name: 'OnCutoff', enrolledAt: '2026-06-01' }));
+      repository.insert(buildInput({ passport: '3', name: 'Recent', enrolledAt: '2026-07-20' }));
+      repository.insert(
+        buildInput({ passport: '4', name: 'OldInactive', enrolledAt: '2026-01-01' }),
+      );
+      repository.deactivate('4', 'admin#1');
+    });
+
+    it('returns active enrollments on or before the cutoff, oldest first', () => {
+      const { items, total } = repository.listDue('2026-06-01', 0, 10);
+      expect(total).toBe(2);
+      expect(items.map((e) => e.name)).toEqual(['Oldest', 'OnCutoff']);
+    });
+
+    it('excludes inactive enrollments even when overdue', () => {
+      const { items } = repository.listDue('2026-06-01', 0, 10);
+      expect(items.map((e) => e.name)).not.toContain('OldInactive');
+    });
+
+    it('paginates keeping the oldest-first order', () => {
+      const first = repository.listDue('2026-07-31', 0, 2);
+      const second = repository.listDue('2026-07-31', 1, 2);
+      expect(first.items.map((e) => e.name)).toEqual(['Oldest', 'OnCutoff']);
+      expect(second.items.map((e) => e.name)).toEqual(['Recent']);
+      expect(second.total).toBe(3);
+    });
+  });
 });

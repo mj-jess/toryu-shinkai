@@ -13,11 +13,12 @@ Discord bot for Jess's GTA RP family server (guild: Tōryū Shinkai). First feat
 
 **Working in production** (bot runs on Jess's machine via `npm start`; command `/academia-setup` publishes the panel):
 
-- Fixed panel with two entry points: 💪 Adicionar and 📋 Matrículas
+- Fixed panel with three entry points: 💪 Adicionar, 📋 Matrículas, and 🕒 Renovações
 - Add modal: passport, name, phone (masked to `(999) 999-999`), gym select ("As duas" pre-selected), date pre-filled with today
 - Browse navigator (ephemeral, per-user): paginated list (10/page) with filter (exact passport or partial name) → pick a record → detail card with labeled data → actions: edit (pre-filled modal), deactivate (with confirmation + audit), reactivate (keeps data)
 - Re-enrolling an inactive passport via Add reactivates it with the new data
 - Unique passport AND phone (DB constraints + friendly conflict messages naming the conflicting record)
+- Renewals view (🕒): active enrollments older than the selected period (1 month default — a fixed 30 days — or 2 weeks), most overdue first with "(há N dias)"; record card gains a 💰 Renovar button that sets the enrollment date to today (audited as "Matrícula renovada"). Prev/next/back are shared with the browse list — the session tracks which view is active.
 - Audit log channel (#log-matriculas): `/academia-log-setup` run inside a channel registers it (stored in the `settings` table); every create/edit/deactivate/reactivate posts a color-coded embed there — vertical `Chave: valor` list (full snapshot; on edits changed fields render as `before → after` inline), author line with Twemoji PNG icon (emoji in embed titles can't be baseline-aligned). Add replies with a short confirmation linking to the audit message (falls back to the full embed when no log channel is set). Audit failures never break the enrollment flow.
 
 **Not yet done / next candidates**: 24/7 hosting (see roadmap), web dashboard (future), more family-admin features as Jess requests them.
@@ -63,7 +64,7 @@ Then: `npm install` → `npm start`. Run `npm run deploy` only when slash comman
 - `src/enrollment/` — feature module:
   - `panel.ts` (fixed message with the two entry points: add + browse)
   - `browse-handlers.ts` (dispatcher for all `enrollment:*` interactions), `browse-session.ts` (per-user page/filter state, in-memory; lost on restart by design)
-  - `list-view.ts` (paginated browser), `detail-view.ts` (record card + deactivate confirmation)
+  - `list-view.ts` (paginated browser), `due-view.ts` (renewals list), `detail-view.ts` (record card + deactivate confirmation)
   - `add-modal.ts`, `edit-modal.ts` (edit is pre-filled, opened from the record card — Discord cannot chain modal→modal, but component→modal works)
   - `audit-log.ts` (`AuditLog` interface + embed builder + `EnrollmentAuditLog`, which posts to the channel registered via `/academia-log-setup`)
   - `repository.ts` (queries), `format.ts` (phone/date helpers), `display.ts` (shared embed pieces), `ids.ts` (custom ID build/parse), `types.ts`

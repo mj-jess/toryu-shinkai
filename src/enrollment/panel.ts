@@ -30,6 +30,11 @@ export function buildPanelMessage(): MessageCreateOptions {
       .setLabel(messages.panel.buttons.browse)
       .setEmoji('📋')
       .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(enrollmentId('due'))
+      .setLabel(messages.panel.buttons.due)
+      .setEmoji('🕒')
+      .setStyle(ButtonStyle.Secondary),
   );
 
   return { embeds: [embed], components: [buttons] };

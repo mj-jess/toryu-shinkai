@@ -33,7 +33,7 @@ export function buildListView(
   const probe = repository.list(state.filter, 0, PAGE_SIZE);
   const totalPages = Math.max(1, Math.ceil(probe.total / PAGE_SIZE));
   const page = Math.min(Math.max(state.page, 0), totalPages - 1);
-  const normalized: BrowseState = { page, filter: state.filter };
+  const normalized: BrowseState = { ...state, view: 'browse', page };
 
   const { items, total } = page === 0 ? probe : repository.list(state.filter, page, PAGE_SIZE);
 

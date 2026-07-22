@@ -5,6 +5,8 @@ export type EnrollmentAction =
   | 'add'
   | 'add-modal'
   | 'browse'
+  | 'due'
+  | 'due-period'
   | 'prev'
   | 'next'
   | 'filter'
@@ -17,7 +19,8 @@ export type EnrollmentAction =
   | 'edit-modal'
   | 'deact'
   | 'deact-yes'
-  | 'react';
+  | 'react'
+  | 'renew';
 
 export interface ParsedEnrollmentId {
   action: EnrollmentAction;

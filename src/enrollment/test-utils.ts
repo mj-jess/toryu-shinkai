@@ -7,8 +7,14 @@ import {
 } from 'discord.js';
 import { vi, type Mock } from 'vitest';
 import type { AuditEvent, AuditLog } from './audit-log.js';
+import type { BrowseState } from './browse-session.js';
 
 type AnyInteraction = ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
+
+/** A full browse state with sensible defaults, for tests that only care about a slice. */
+export function browseState(overrides: Partial<BrowseState> = {}): BrowseState {
+  return { view: 'browse', page: 0, filter: '', period: '1m', ...overrides };
+}
 
 export const FAKE_AUDIT_LOG_URL = 'https://discord.com/channels/1/2/3';
 

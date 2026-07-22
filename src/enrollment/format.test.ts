@@ -1,5 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { formatDateBR, formatPhoneNumber, getTodayBR, parseDateBR } from './format.js';
+import {
+  daysSince,
+  formatDateBR,
+  formatPhoneNumber,
+  getTodayBR,
+  getTodayISO,
+  isoDaysAgo,
+  parseDateBR,
+} from './format.js';
+
+describe('date helpers', () => {
+  it('isoDaysAgo(0) is today', () => {
+    expect(isoDaysAgo(0)).toBe(getTodayISO());
+  });
+
+  it('getTodayISO agrees with getTodayBR', () => {
+    expect(formatDateBR(getTodayISO())).toBe(getTodayBR());
+  });
+
+  it('daysSince inverts isoDaysAgo, across month and year boundaries', () => {
+    expect(daysSince(getTodayISO())).toBe(0);
+    expect(daysSince(isoDaysAgo(14))).toBe(14);
+    expect(daysSince(isoDaysAgo(30))).toBe(30);
+    expect(daysSince(isoDaysAgo(365))).toBe(365);
+  });
+});
 
 describe('formatPhoneNumber', () => {
   it('formats 9 plain digits', () => {
