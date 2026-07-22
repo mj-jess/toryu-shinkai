@@ -1,6 +1,40 @@
-# Família Bot — Project Standards
+# Família Bot — Project Context & Standards
 
-Discord bot for a GTA RP family server. First feature: gym enrollment management (Sandy / Vinewood).
+Discord bot for Jess's GTA RP family server (guild: Tōryū Shinkai). First feature: gym enrollment management (Sandy / Vinewood academies). The bot will keep growing — more admin features are planned.
+
+## Working with Jess
+
+- **Always respond in Brazilian Portuguese** (she's a professional developer, freelancing here; other projects live in `~/projects/nobe`).
+- **Never add AI attribution**: no `Co-Authored-By: Claude` in commits, no "generated with" in PRs, code, or docs. Her repos carry her authorship only.
+- For **product/UX decisions, discuss options first** before implementing (she asked for this explicitly — present possibilities, trade-offs, and a recommendation, then let her choose).
+- She tests features live on the real Discord server and gives quick feedback; commit and push after each validated feature.
+
+## Current status (2026-07-22)
+
+**Working in production** (bot runs on Jess's machine via `npm start`; command `/academia-setup` publishes the panel):
+
+- Fixed panel with two entry points: 💪 Adicionar and 📋 Matrículas
+- Add modal: passport, name, phone (masked to `(999) 999-999`), gym select ("As duas" pre-selected), date pre-filled with today
+- Browse navigator (ephemeral, per-user): paginated list (10/page) with filter (exact passport or partial name) → pick a record → detail card with labeled data → actions: edit (pre-filled modal), deactivate (with confirmation + audit), reactivate (keeps data)
+- Re-enrolling an inactive passport via Add reactivates it with the new data
+- Unique passport AND phone (DB constraints + friendly conflict messages naming the conflicting record)
+
+**Not yet done / next candidates**: 24/7 hosting (see roadmap), web dashboard (future), more family-admin features as Jess requests them.
+
+## Setting up on a new machine
+
+After cloning, three things do NOT come with the repo:
+
+1. **`.env`** (gitignored) — copy from `.env.example` and fill `DISCORD_TOKEN`, `CLIENT_ID`, `GUILD_ID`. The token is in the Discord Developer Portal (app "Tōryū Bot", account mj-jess); if lost, Reset Token there. IDs: CLIENT_ID `1529480366069383408`, GUILD_ID `1399382584101703723`.
+2. **`data/family.db`** (gitignored) — the real enrollment data lives only on the machine that ran the bot. Copy `data/family.db` from the old machine to keep the records; otherwise the bot starts empty (schema is recreated by migrations automatically).
+3. **Git credentials** — the remote is pinned to the mj-jess account. If the machine has multiple GitHub accounts on `gh`, reproduce the repo-local helper:
+   ```bash
+   git config credential.helper '!f() { echo username=mj-jess; echo "password=$(gh auth token --user mj-jess)"; }; f'
+   ```
+
+Then: `npm install` → `npm start`. Run `npm run deploy` only when slash commands change.
+
+⚠️ **Run the bot on ONE machine at a time** — two processes with the same token both receive every interaction and will double-handle events.
 
 ## Code standards
 
@@ -9,52 +43,51 @@ Discord bot for a GTA RP family server. First feature: gym enrollment management
 - **All user-facing text in Brazilian Portuguese**, centralized in `src/messages.ts`. Never hardcode user-visible strings elsewhere. Console logs are developer-facing → English.
 - **Prettier** enforces formatting (`npm run format`). Config: single quotes, print width 100.
 - **Domain values are English enums** (`'sandy' | 'vinewood' | 'both'`); Portuguese labels come from `gymLabels` in `src/messages.ts`.
+- **UI rule from Jess**: any data shown to users must be labeled `Chave: valor` (embed fields or explicit labels) — never bare values. Record headers are `passaporte — nome`.
 
 ## Tests
 
-- Vitest, colocated: `foo.test.ts` next to `foo.ts`.
-- Repository tests use an in-memory SQLite DB via `createDatabase(':memory:')`.
-- Interaction handlers take their dependencies as parameters (e.g. `handleAddModalSubmit(interaction, repository)`) so tests can pass fakes — keep new handlers dependency-injected.
+- Vitest, colocated: `foo.test.ts` next to `foo.ts`. Shared doubles in `src/enrollment/test-utils.ts` (fake button/select/modal interactions + payload inspectors).
+- Repository tests use an in-memory SQLite DB via `createDatabase(':memory:')` — which runs the real migrations, so tests always exercise the production schema.
+- Handlers take dependencies as parameters (repository, sessions) so tests pass fakes — keep new handlers dependency-injected.
 - Run: `npm test` (CI mode) or `npm run test:watch`.
 
 ## Architecture
 
-- `src/index.ts` — client bootstrap + interaction routing (custom IDs are namespaced: `enrollment:*`).
+- `src/index.ts` — client bootstrap; routes `/academia-setup` + delegates every `enrollment:*` interaction to the dispatcher.
 - `src/messages.ts` — every Portuguese string.
 - `src/database.ts` — SQLite connection (better-sqlite3, WAL); applies migrations on open.
 - `src/migrations.ts` — migration runner (`PRAGMA user_version` tracks the applied version).
 - `src/enrollment/` — feature module:
   - `panel.ts` (fixed message with the two entry points: add + browse)
-  - `browse-handlers.ts` (dispatcher for all `enrollment:*` interactions), `browse-session.ts` (per-user page/filter state, in-memory)
+  - `browse-handlers.ts` (dispatcher for all `enrollment:*` interactions), `browse-session.ts` (per-user page/filter state, in-memory; lost on restart by design)
   - `list-view.ts` (paginated browser), `detail-view.ts` (record card + deactivate confirmation)
   - `add-modal.ts`, `edit-modal.ts` (edit is pre-filled, opened from the record card — Discord cannot chain modal→modal, but component→modal works)
   - `repository.ts` (queries), `format.ts` (phone/date helpers), `display.ts` (shared embed pieces), `ids.ts` (custom ID build/parse), `types.ts`
 - New features follow the same shape: one directory per feature, strings in `messages.ts`, repository pattern for DB access, custom IDs namespaced via an `ids.ts`.
-- UI rule from Jess: any data shown to users must be labeled `Chave: valor` (embed fields or explicit labels) — never bare values.
-- Passport and phone are unique (DB constraints + friendly app-level checks that name the conflicting record).
 
 ## Migrations
 
-- Plain SQL files in `migrations/`, named `<version>-<kebab-description>.sql` (e.g. `002-add-points-table.sql`). Versions are strictly increasing integers.
-- Applied automatically on boot (and in tests via `createDatabase(':memory:')` — tests always run against the real schema).
+- Plain SQL files in `migrations/`, named `<version>-<kebab-description>.sql`. Versions are strictly increasing integers. Applied automatically on boot.
 - Each migration runs in a transaction; **never edit a migration that may already be applied** — add a new one.
-
-## Database roadmap (decided 2026-07-22)
-
-- **Now**: SQLite. A single bot process with light writes doesn't need more, and hosting is still undecided.
-- **When hosting is decided** (or when the planned web dashboard starts): migrate to **Drizzle ORM + Postgres**. Free-tier plan: Neon (Postgres), bot on Oracle Always Free VPS or a home machine, dashboard on Vercel. Keep everything as close to R$0/month as possible — that's an explicit constraint from Jess.
-- The repository pattern + versioned migrations exist precisely to keep that future migration cheap: only `database.ts`, `migrations.ts`, and repositories should need to change.
+- Applied so far: 001 enrollments table, 002 deactivation audit columns, 003 unique phone index.
 
 ## Domain rules (enrollment)
 
-- Enrollments are **never deleted** — only marked `active = 0` (deactivated).
-- Re-enrolling an inactive passport **reactivates** it with the new data.
-- Passport is unique. Phone is stored formatted as `(999) 999-999`. Dates stored as ISO (`yyyy-mm-dd`), displayed as `dd/mm/yyyy`.
+- Enrollments are **never deleted** — only marked `active = 0`, recording who deactivated and when.
+- Re-enrolling an inactive passport **reactivates** it (via Add: with new data; via card 🔄: keeping data). Reactivation clears the deactivation audit.
+- Passport and phone are unique. Phone stored formatted `(999) 999-999`. Dates stored ISO (`yyyy-mm-dd`), displayed `dd/mm/yyyy`.
+
+## Database roadmap (decided 2026-07-22)
+
+- **Now**: SQLite. A single bot process with light writes; hosting still undecided.
+- **When hosting is decided** (or the web dashboard starts): migrate to **Drizzle ORM + Postgres**. Free-tier plan: Neon (Postgres), bot on Oracle Always Free VPS or a home machine, dashboard on Vercel. Keep everything as close to R$0/month as possible — explicit constraint from Jess.
+- The repository pattern + versioned migrations exist to keep that future migration cheap: only `database.ts`, `migrations.ts`, and repositories should need to change.
+- Jess knows: GitHub hosts code only (Pages = static files, no bot process); a 24/7 bot needs a real host.
 
 ## Environment constraints
 
-- Node 22.2.0 — this pins better-sqlite3 to v11 and vitest to v3 (newer majors need Node ≥22.12; segfault/rolldown failures otherwise). If Node gets upgraded, these can be bumped.
-- Before running: `.env` with `DISCORD_TOKEN`, `CLIENT_ID`, `GUILD_ID` (see `.env.example`).
+- Machine Node was 22.2.0 — this pins better-sqlite3 to v11 and vitest to v3 (newer majors need Node ≥22.12: better-sqlite3 v13 segfaults, vitest 4's rolldown fails to load). If the new machine has Node ≥22.12, these can be bumped.
 
 ## Checks before finishing any task
 
