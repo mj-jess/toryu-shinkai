@@ -118,6 +118,16 @@ export async function handleAddModalSubmit(
     return;
   }
 
+  // Phones are unique: allow only when the number belongs to this same passport.
+  const phoneOwner = repository.findByPhone(phone);
+  if (phoneOwner && phoneOwner.passport !== passport) {
+    await interaction.reply({
+      content: messages.addModal.phoneInUse(phone, phoneOwner.passport, phoneOwner.name),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
   const enrolledAt = parseDateBR(interaction.fields.getTextInputValue(FIELD_IDS.enrolledAt));
   if (!enrolledAt) {
     await interaction.reply({

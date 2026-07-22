@@ -19,21 +19,19 @@ export function enrollmentFields(
   ];
 }
 
-/** One-line summary used in search results. */
-export function enrollmentSummaryLine(enrollment: Enrollment): string {
-  const info = messages.searchModal.resultLine(
-    enrollment.phone,
-    gymLabels[enrollment.gym],
-    formatDateBR(enrollment.enrolledAt),
-  );
+/** Two labeled lines describing an enrollment in the browser list. */
+export function listEntry(enrollment: Enrollment): string {
   const status = enrollment.active
-    ? messages.searchModal.statusActive
-    : messages.searchModal.statusInactive(formatDateTimeBR(enrollment.deactivatedAt));
-  return `${info}\n${status}`;
+    ? messages.listView.statusActive
+    : messages.listView.statusInactive;
+  return [
+    `**${enrollment.passport} — ${enrollment.name}**`,
+    `${messages.listView.entryLine(enrollment.phone, gymLabels[enrollment.gym])} · ${status}`,
+  ].join('\n');
 }
 
 /** Formats a SQLite localtime timestamp (yyyy-mm-dd hh:mm:ss) as dd/mm/yyyy. */
-function formatDateTimeBR(timestamp: string | null): string {
+export function timestampToDateBR(timestamp: string | null): string {
   if (!timestamp) return '—';
   const datePart = timestamp.split(' ')[0];
   return datePart ? formatDateBR(datePart) : '—';

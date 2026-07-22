@@ -2,29 +2,58 @@ import type { Database } from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createDatabase } from '../database.js';
 import { messages } from '../messages.js';
-import { handleEditModalSubmit } from './edit-modal.js';
+import { buildEditModal, handleEditModalSubmit } from './edit-modal.js';
 import { EnrollmentRepository } from './repository.js';
-import { embedFieldValue, embedTitle, fakeModalInteraction, replyArg } from './test-utils.js';
+import {
+  embedTitle,
+  fakeModalInteraction,
+  modalField,
+  replyArg,
+  replyEmbed,
+  updateArg,
+} from './test-utils.js';
 
-interface EditValues {
-  passport?: string;
-  name?: string;
-  phone?: string;
-  gym?: string;
-  enrolledAt?: string;
-}
-
-function editInteraction(values: EditValues) {
+function editInteraction(
+  overrides: Partial<Record<'name' | 'phone' | 'enrolledAt', string>> = {},
+  gym = 'both',
+) {
   return fakeModalInteraction({
+    customId: 'enrollment:edit-modal:631',
     text: {
-      passport: values.passport ?? '631',
-      name: values.name ?? '',
-      phone: values.phone ?? '',
-      enrolledAt: values.enrolledAt ?? '',
+      name: 'Ryoko Toryu',
+      phone: '(666) 123-456',
+      enrolledAt: '22/07/2026',
+      ...overrides,
     },
-    selects: { gym: [values.gym ?? 'keep'] },
+    selects: { gym: [gym] },
   });
 }
+
+describe('buildEditModal', () => {
+  it('pre-fills every field with the current data', () => {
+    const modal = buildEditModal({
+      id: 1,
+      passport: '631',
+      name: 'Ryoko Toryu',
+      phone: '(666) 123-456',
+      gym: 'sandy',
+      enrolledAt: '2026-07-22',
+      active: true,
+      registeredBy: 'tester#0',
+      deactivatedBy: null,
+      deactivatedAt: null,
+      createdAt: '',
+      updatedAt: '',
+    }).toJSON();
+
+    expect(modal.custom_id).toBe('enrollment:edit-modal:631');
+    expect(modal.title).toBe(messages.editModal.title('631'));
+    expect(modalField(modal, 'name')?.value).toBe('Ryoko Toryu');
+    expect(modalField(modal, 'phone')?.value).toBe('(666) 123-456');
+    expect(modalField(modal, 'enrolledAt')?.value).toBe('22/07/2026');
+    expect(modalField(modal, 'gym')?.options?.find((o) => o.default)?.value).toBe('sandy');
+  });
+});
 
 describe('handleEditModalSubmit', () => {
   let db: Database;
@@ -47,79 +76,87 @@ describe('handleEditModalSubmit', () => {
     db.close();
   });
 
-  it('updates only the provided fields', async () => {
+  it('applies changes and refreshes the record card in place', async () => {
     const interaction = editInteraction({ name: 'Ryoko Renamed' });
 
-    await handleEditModalSubmit(interaction, repository);
+    await handleEditModalSubmit(interaction, '631', repository);
 
-    expect(repository.findByPassport('631')).toMatchObject({
-      name: 'Ryoko Renamed',
-      phone: '(666) 123-456',
-      gym: 'both',
-      enrolledAt: '2026-07-22',
-    });
-    const reply = replyArg(interaction);
-    expect(embedTitle(reply)).toBe(messages.editModal.updatedTitle);
-    expect(embedFieldValue(reply, messages.editModal.changedFieldsLabel)).toBe(
-      messages.addModal.fields.name,
+    expect(repository.findByPassport('631')?.name).toBe('Ryoko Renamed');
+    const payload = updateArg(interaction);
+    expect(embedTitle(payload)).toBe(messages.detailView.title('631', 'Ryoko Renamed'));
+    expect(replyEmbed(payload)?.data.description).toContain(
+      `${messages.editModal.changedFieldsLabel}: ${messages.addModal.fields.name}`,
     );
   });
 
-  it('changes the gym when a new one is selected', async () => {
-    const interaction = editInteraction({ gym: 'sandy' });
+  it('changes the gym via the select', async () => {
+    const interaction = editInteraction({}, 'vinewood');
 
-    await handleEditModalSubmit(interaction, repository);
+    await handleEditModalSubmit(interaction, '631', repository);
 
-    expect(repository.findByPassport('631')?.gym).toBe('sandy');
+    expect(repository.findByPassport('631')?.gym).toBe('vinewood');
   });
 
-  it('formats and validates a new phone', async () => {
-    const interaction = editInteraction({ phone: '999888777' });
+  it('reports when nothing changed', async () => {
+    const interaction = editInteraction();
 
-    await handleEditModalSubmit(interaction, repository);
+    await handleEditModalSubmit(interaction, '631', repository);
 
-    expect(repository.findByPassport('631')?.phone).toBe('(999) 888-777');
+    expect(replyEmbed(updateArg(interaction))?.data.description).toBe(
+      messages.editModal.nothingToChange,
+    );
   });
 
   it('rejects an invalid phone without changing anything', async () => {
     const interaction = editInteraction({ phone: '12', name: 'Should Not Apply' });
 
-    await handleEditModalSubmit(interaction, repository);
+    await handleEditModalSubmit(interaction, '631', repository);
 
     expect(repository.findByPassport('631')?.name).toBe('Ryoko Toryu');
     expect(replyArg(interaction).content).toBe(messages.addModal.invalidPhone);
   });
 
+  it('rejects a phone that belongs to another enrollment', async () => {
+    repository.insert({
+      passport: '99',
+      name: 'John Doe',
+      phone: '(111) 222-333',
+      gym: 'sandy',
+      enrolledAt: '2026-07-22',
+      registeredBy: 'tester#0',
+    });
+
+    const interaction = editInteraction({ phone: '111222333' });
+    await handleEditModalSubmit(interaction, '631', repository);
+
+    expect(repository.findByPassport('631')?.phone).toBe('(666) 123-456');
+    expect(replyArg(interaction).content).toBe(
+      messages.addModal.phoneInUse('(111) 222-333', '99', 'John Doe'),
+    );
+  });
+
+  it('keeping the own phone is not a conflict', async () => {
+    const interaction = editInteraction({ name: 'Renamed' });
+
+    await handleEditModalSubmit(interaction, '631', repository);
+
+    expect(repository.findByPassport('631')?.name).toBe('Renamed');
+  });
+
   it('rejects an invalid date without changing anything', async () => {
     const interaction = editInteraction({ enrolledAt: '31/02/2026' });
 
-    await handleEditModalSubmit(interaction, repository);
+    await handleEditModalSubmit(interaction, '631', repository);
 
     expect(repository.findByPassport('631')?.enrolledAt).toBe('2026-07-22');
     expect(replyArg(interaction).content).toContain('Data inválida');
   });
 
   it('replies with an error for an unknown passport', async () => {
-    const interaction = editInteraction({ passport: '999', name: 'Anyone' });
+    const interaction = editInteraction();
 
-    await handleEditModalSubmit(interaction, repository);
+    await handleEditModalSubmit(interaction, '999', repository);
 
-    expect(replyArg(interaction).content).toBe(messages.editModal.notFound('999'));
-  });
-
-  it('tells the user when no field was filled', async () => {
-    const interaction = editInteraction({});
-
-    await handleEditModalSubmit(interaction, repository);
-
-    expect(replyArg(interaction).content).toBe(messages.editModal.nothingToChange);
-  });
-
-  it('selecting the current gym does not count as a change', async () => {
-    const interaction = editInteraction({ gym: 'both' });
-
-    await handleEditModalSubmit(interaction, repository);
-
-    expect(replyArg(interaction).content).toBe(messages.editModal.nothingToChange);
+    expect(replyArg(interaction).content).toBe(messages.detailView.notFound);
   });
 });

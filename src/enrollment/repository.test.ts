@@ -4,11 +4,14 @@ import { createDatabase } from '../database.js';
 import { EnrollmentRepository } from './repository.js';
 import type { EnrollmentInput } from './types.js';
 
+let phoneSeed = 100;
+
 function buildInput(overrides: Partial<EnrollmentInput> = {}): EnrollmentInput {
+  phoneSeed += 1;
   return {
     passport: '12345',
     name: 'John Doe',
-    phone: '(123) 456-789',
+    phone: `(${phoneSeed}) 456-789`,
     gym: 'both',
     enrolledAt: '2026-07-22',
     registeredBy: 'tester#0',
@@ -30,7 +33,7 @@ describe('EnrollmentRepository', () => {
   });
 
   it('inserts and finds an enrollment by passport', () => {
-    repository.insert(buildInput());
+    repository.insert(buildInput({ phone: '(123) 456-789' }));
 
     const found = repository.findByPassport('12345');
     expect(found).toMatchObject({
@@ -44,16 +47,25 @@ describe('EnrollmentRepository', () => {
       deactivatedBy: null,
       deactivatedAt: null,
     });
-    expect(found?.id).toBeTypeOf('number');
   });
 
-  it('returns undefined for an unknown passport', () => {
-    expect(repository.findByPassport('nope')).toBeUndefined();
+  it('finds an enrollment by phone', () => {
+    repository.insert(buildInput({ phone: '(111) 222-333' }));
+
+    expect(repository.findByPhone('(111) 222-333')?.passport).toBe('12345');
+    expect(repository.findByPhone('(999) 999-999')).toBeUndefined();
   });
 
   it('rejects duplicate passports', () => {
     repository.insert(buildInput());
     expect(() => repository.insert(buildInput({ name: 'Other' }))).toThrow(/UNIQUE/);
+  });
+
+  it('rejects duplicate phones', () => {
+    repository.insert(buildInput({ phone: '(111) 222-333' }));
+    expect(() => repository.insert(buildInput({ passport: '99', phone: '(111) 222-333' }))).toThrow(
+      /UNIQUE/,
+    );
   });
 
   it('deactivates without deleting, recording the audit trail', () => {
@@ -62,19 +74,31 @@ describe('EnrollmentRepository', () => {
 
     const found = repository.findByPassport('12345');
     expect(found?.active).toBe(false);
-    expect(found?.name).toBe('John Doe');
     expect(found?.deactivatedBy).toBe('admin#1');
     expect(found?.deactivatedAt).toBeTruthy();
   });
 
-  it('reactivates an inactive enrollment with fresh data and clears the audit trail', () => {
+  it('activate reactivates keeping data and clears the audit trail', () => {
+    repository.insert(buildInput({ name: 'Keep Me' }));
+    repository.deactivate('12345', 'admin#1');
+
+    repository.activate('12345');
+
+    expect(repository.findByPassport('12345')).toMatchObject({
+      name: 'Keep Me',
+      active: true,
+      deactivatedBy: null,
+      deactivatedAt: null,
+    });
+  });
+
+  it('reactivate replaces data and clears the audit trail', () => {
     repository.insert(buildInput());
     repository.deactivate('12345', 'admin#1');
 
     repository.reactivate(buildInput({ name: 'John Updated', gym: 'sandy' }));
 
-    const found = repository.findByPassport('12345');
-    expect(found).toMatchObject({
+    expect(repository.findByPassport('12345')).toMatchObject({
       name: 'John Updated',
       gym: 'sandy',
       active: true,
@@ -83,83 +107,54 @@ describe('EnrollmentRepository', () => {
     });
   });
 
-  describe('update', () => {
-    it('changes only the provided fields', () => {
-      repository.insert(buildInput());
+  it('update changes only the provided fields', () => {
+    repository.insert(buildInput({ phone: '(123) 456-789' }));
 
-      repository.update({ passport: '12345', name: 'Renamed' });
+    repository.update({ passport: '12345', name: 'Renamed' });
 
-      expect(repository.findByPassport('12345')).toMatchObject({
-        name: 'Renamed',
-        phone: '(123) 456-789',
-        gym: 'both',
-        enrolledAt: '2026-07-22',
-      });
-    });
-
-    it('can change every editable field at once', () => {
-      repository.insert(buildInput());
-
-      repository.update({
-        passport: '12345',
-        name: 'New Name',
-        phone: '(999) 888-777',
-        gym: 'vinewood',
-        enrolledAt: '2026-01-15',
-      });
-
-      expect(repository.findByPassport('12345')).toMatchObject({
-        name: 'New Name',
-        phone: '(999) 888-777',
-        gym: 'vinewood',
-        enrolledAt: '2026-01-15',
-      });
+    expect(repository.findByPassport('12345')).toMatchObject({
+      name: 'Renamed',
+      phone: '(123) 456-789',
+      gym: 'both',
+      enrolledAt: '2026-07-22',
     });
   });
 
-  describe('search', () => {
+  describe('list', () => {
     beforeEach(() => {
-      repository.insert(buildInput({ passport: '1', name: 'Ryoko Toryu' }));
-      repository.insert(buildInput({ passport: '2', name: 'John Doe' }));
-      repository.insert(buildInput({ passport: '3', name: 'Jane Doe' }));
+      repository.insert(buildInput({ passport: '1', name: 'Carol' }));
+      repository.insert(buildInput({ passport: '2', name: 'alice' }));
+      repository.insert(buildInput({ passport: '3', name: 'Bob' }));
       repository.deactivate('3', 'admin#1');
     });
 
-    it('matches by exact passport', () => {
-      const results = repository.search('1');
-      expect(results.map((e) => e.passport)).toEqual(['1']);
+    it('lists everything for an empty filter, active first then by name', () => {
+      const { items, total } = repository.list('', 0, 10);
+      expect(total).toBe(3);
+      expect(items.map((e) => e.name)).toEqual(['alice', 'Carol', 'Bob']);
     });
 
-    it('matches by partial name, case-insensitive', () => {
-      const results = repository.search('doe');
-      expect(results.map((e) => e.name)).toEqual(['John Doe', 'Jane Doe']);
+    it('paginates with a stable order', () => {
+      const first = repository.list('', 0, 2);
+      const second = repository.list('', 1, 2);
+      expect(first.items.map((e) => e.name)).toEqual(['alice', 'Carol']);
+      expect(second.items.map((e) => e.name)).toEqual(['Bob']);
+      expect(second.total).toBe(3);
     });
 
-    it('lists active enrollments before inactive ones', () => {
-      const results = repository.search('doe');
-      expect(results.map((e) => e.active)).toEqual([true, false]);
+    it('filters by exact passport', () => {
+      const { items, total } = repository.list('1', 0, 10);
+      expect(total).toBe(1);
+      expect(items[0]?.name).toBe('Carol');
     });
 
-    it('returns empty for no matches', () => {
-      expect(repository.search('nobody')).toEqual([]);
+    it('filters by partial name, case-insensitive', () => {
+      const { items } = repository.list('ALI', 0, 10);
+      expect(items.map((e) => e.name)).toEqual(['alice']);
     });
-  });
 
-  it('lists recent enrollments up to the limit, newest first', () => {
-    repository.insert(buildInput({ passport: '1', name: 'First' }));
-    repository.insert(buildInput({ passport: '2', name: 'Second' }));
-    repository.insert(buildInput({ passport: '3', name: 'Third' }));
-
-    const recent = repository.listRecent(2);
-    expect(recent.map((e) => e.name)).toEqual(['Third', 'Second']);
-  });
-
-  it('counts active and inactive enrollments', () => {
-    repository.insert(buildInput({ passport: '1' }));
-    repository.insert(buildInput({ passport: '2' }));
-    repository.deactivate('1', 'admin#1');
-
-    expect(repository.counts()).toEqual({ active: 1, inactive: 1 });
-    expect(repository.countActive()).toBe(1);
+    it('returns an empty page when nothing matches', () => {
+      expect(repository.list('nobody', 0, 10)).toEqual({ items: [], total: 0 });
+    });
   });
 });

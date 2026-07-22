@@ -23,8 +23,15 @@ Discord bot for a GTA RP family server. First feature: gym enrollment management
 - `src/messages.ts` — every Portuguese string.
 - `src/database.ts` — SQLite connection (better-sqlite3, WAL); applies migrations on open.
 - `src/migrations.ts` — migration runner (`PRAGMA user_version` tracks the applied version).
-- `src/enrollment/` — feature module: `panel.ts` (fixed message), `add-modal.ts` (form + handler), `repository.ts` (queries), `format.ts` (phone/date helpers), `types.ts`.
-- New features follow the same shape: one directory per feature, strings in `messages.ts`, repository pattern for DB access.
+- `src/enrollment/` — feature module:
+  - `panel.ts` (fixed message with the two entry points: add + browse)
+  - `browse-handlers.ts` (dispatcher for all `enrollment:*` interactions), `browse-session.ts` (per-user page/filter state, in-memory)
+  - `list-view.ts` (paginated browser), `detail-view.ts` (record card + deactivate confirmation)
+  - `add-modal.ts`, `edit-modal.ts` (edit is pre-filled, opened from the record card — Discord cannot chain modal→modal, but component→modal works)
+  - `repository.ts` (queries), `format.ts` (phone/date helpers), `display.ts` (shared embed pieces), `ids.ts` (custom ID build/parse), `types.ts`
+- New features follow the same shape: one directory per feature, strings in `messages.ts`, repository pattern for DB access, custom IDs namespaced via an `ids.ts`.
+- UI rule from Jess: any data shown to users must be labeled `Chave: valor` (embed fields or explicit labels) — never bare values.
+- Passport and phone are unique (DB constraints + friendly app-level checks that name the conflicting record).
 
 ## Migrations
 

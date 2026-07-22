@@ -33,23 +33,37 @@ function toEnrollment(row: EnrollmentRow): Enrollment {
   };
 }
 
-export interface EnrollmentCounts {
-  active: number;
-  inactive: number;
+export interface EnrollmentPage {
+  items: Enrollment[];
+  total: number;
+}
+
+interface ListParams {
+  passport: string;
+  name: string;
+  limit: number;
+  offset: number;
+}
+
+interface FilterParams {
+  passport: string;
+  name: string;
 }
 
 export class EnrollmentRepository {
   private readonly findByPassportStmt: Statement<[string], EnrollmentRow>;
+  private readonly findByPhoneStmt: Statement<[string], EnrollmentRow>;
   private readonly insertStmt: Statement<[EnrollmentInput]>;
   private readonly reactivateStmt: Statement<[EnrollmentInput]>;
   private readonly updateStmt: Statement<[Record<string, string | null>]>;
   private readonly deactivateStmt: Statement<[{ passport: string; deactivatedBy: string }]>;
-  private readonly searchStmt: Statement<[{ passport: string; name: string }], EnrollmentRow>;
-  private readonly listRecentStmt: Statement<[number], EnrollmentRow>;
-  private readonly countsStmt: Statement<[], { active: number; inactive: number }>;
+  private readonly activateStmt: Statement<[string]>;
+  private readonly listStmt: Statement<[ListParams], EnrollmentRow>;
+  private readonly countStmt: Statement<[FilterParams], { total: number }>;
 
   constructor(db: Database) {
     this.findByPassportStmt = db.prepare('SELECT * FROM enrollments WHERE passport = ?');
+    this.findByPhoneStmt = db.prepare('SELECT * FROM enrollments WHERE phone = ?');
 
     this.insertStmt = db.prepare(`
       INSERT INTO enrollments (passport, name, phone, gym, enrolled_at, registered_by)
@@ -84,27 +98,36 @@ export class EnrollmentRepository {
       WHERE passport = @passport
     `);
 
-    this.searchStmt = db.prepare(`
+    this.activateStmt = db.prepare(`
+      UPDATE enrollments
+      SET active = 1,
+          deactivated_by = NULL,
+          deactivated_at = NULL,
+          updated_at = datetime('now', 'localtime')
+      WHERE passport = ?
+    `);
+
+    const filterClause = "(@passport = '' OR passport = @passport OR name LIKE @name)";
+
+    this.listStmt = db.prepare(`
       SELECT * FROM enrollments
-      WHERE passport = @passport OR name LIKE @name
-      ORDER BY active DESC, name COLLATE NOCASE
-      LIMIT 20
+      WHERE ${filterClause}
+      ORDER BY active DESC, name COLLATE NOCASE, id
+      LIMIT @limit OFFSET @offset
     `);
 
-    this.listRecentStmt = db.prepare(`
-      SELECT * FROM enrollments ORDER BY created_at DESC, id DESC LIMIT ?
-    `);
-
-    this.countsStmt = db.prepare(`
-      SELECT
-        SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) AS active,
-        SUM(CASE WHEN active = 0 THEN 1 ELSE 0 END) AS inactive
-      FROM enrollments
+    this.countStmt = db.prepare(`
+      SELECT COUNT(*) AS total FROM enrollments WHERE ${filterClause}
     `);
   }
 
   findByPassport(passport: string): Enrollment | undefined {
     const row = this.findByPassportStmt.get(passport);
+    return row ? toEnrollment(row) : undefined;
+  }
+
+  findByPhone(phone: string): Enrollment | undefined {
+    const row = this.findByPhoneStmt.get(phone);
     return row ? toEnrollment(row) : undefined;
   }
 
@@ -133,21 +156,21 @@ export class EnrollmentRepository {
     this.deactivateStmt.run({ passport, deactivatedBy });
   }
 
-  /** Matches by exact passport or partial name (case-insensitive), active first. */
-  search(term: string): Enrollment[] {
-    return this.searchStmt.all({ passport: term, name: `%${term}%` }).map(toEnrollment);
+  /** Reactivates keeping the current data (used from the detail card). */
+  activate(passport: string): void {
+    this.activateStmt.run(passport);
   }
 
-  listRecent(limit = 20): Enrollment[] {
-    return this.listRecentStmt.all(limit).map(toEnrollment);
-  }
-
-  counts(): EnrollmentCounts {
-    const row = this.countsStmt.get();
-    return { active: row?.active ?? 0, inactive: row?.inactive ?? 0 };
-  }
-
-  countActive(): number {
-    return this.counts().active;
+  /**
+   * Pages through enrollments, active first then by name. An empty filter lists
+   * everything; otherwise matches exact passport or partial name (case-insensitive).
+   */
+  list(filter: string, page: number, pageSize: number): EnrollmentPage {
+    const params: FilterParams = { passport: filter, name: `%${filter}%` };
+    const total = this.countStmt.get(params)?.total ?? 0;
+    const items = this.listStmt
+      .all({ ...params, limit: pageSize, offset: page * pageSize })
+      .map(toEnrollment);
+    return { items, total };
   }
 }

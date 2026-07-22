@@ -92,6 +92,20 @@ describe('handleAddModalSubmit', () => {
     expect(replyArg(interaction).content).toContain('Data inválida');
   });
 
+  it('rejects a phone already registered to another passport', async () => {
+    await handleAddModalSubmit(addInteraction(buildFormValues()), repository);
+
+    const second = addInteraction(
+      buildFormValues({ passport: '99', name: 'Other Person', phone: '123456789' }),
+    );
+    await handleAddModalSubmit(second, repository);
+
+    expect(repository.findByPassport('99')).toBeUndefined();
+    expect(replyArg(second).content).toBe(
+      messages.addModal.phoneInUse('(123) 456-789', '12345', 'John Doe'),
+    );
+  });
+
   it('warns when the passport already has an active enrollment', async () => {
     await handleAddModalSubmit(addInteraction(buildFormValues()), repository);
 

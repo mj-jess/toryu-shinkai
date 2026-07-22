@@ -1,5 +1,4 @@
 import {
-  EmbedBuilder,
   LabelBuilder,
   MessageFlags,
   ModalBuilder,
@@ -10,169 +9,152 @@ import {
   type ModalSubmitInteraction,
 } from 'discord.js';
 import { gymLabels, messages } from '../messages.js';
-import { EMBED_COLOR, enrollmentFields } from './display.js';
-import { formatPhoneNumber, getTodayBR, parseDateBR } from './format.js';
+import { buildDetailView } from './detail-view.js';
+import { formatDateBR, formatPhoneNumber, getTodayBR, parseDateBR } from './format.js';
+import { enrollmentId } from './ids.js';
 import type { EnrollmentRepository } from './repository.js';
-import { GYMS, isGym, type EnrollmentUpdate } from './types.js';
-
-export const EDIT_MODAL_ID = 'enrollment:edit-modal';
+import { GYMS, isGym, type Enrollment, type EnrollmentUpdate } from './types.js';
 
 const FIELD_IDS = {
-  passport: 'passport',
   name: 'name',
   phone: 'phone',
   gym: 'gym',
   enrolledAt: 'enrolledAt',
 } as const;
 
-/** Sentinel select value meaning "keep the current gym". */
-const KEEP_GYM = 'keep';
-
-/** The edit form, opened by the ✏️ button. Blank fields keep their current value. */
-export function buildEditModal(): ModalBuilder {
-  const gymOptions = [
+/** The edit form, opened from the record card — every field pre-filled with current data. */
+export function buildEditModal(enrollment: Enrollment): ModalBuilder {
+  const gymOptions = GYMS.map((gym) =>
     new StringSelectMenuOptionBuilder()
-      .setLabel(messages.editModal.keepGymOption)
-      .setValue(KEEP_GYM)
-      .setDefault(true),
-    ...GYMS.map((gym) =>
-      new StringSelectMenuOptionBuilder().setLabel(gymLabels[gym]).setValue(gym),
-    ),
-  ];
+      .setLabel(gymLabels[gym])
+      .setValue(gym)
+      .setDefault(gym === enrollment.gym),
+  );
 
   return new ModalBuilder()
-    .setCustomId(EDIT_MODAL_ID)
-    .setTitle(messages.editModal.title)
+    .setCustomId(enrollmentId('edit-modal', enrollment.passport))
+    .setTitle(messages.editModal.title(enrollment.passport))
     .addLabelComponents(
       new LabelBuilder()
-        .setLabel(messages.editModal.passportLabel)
-        .setDescription(messages.editModal.passportDescription)
-        .setTextInputComponent(
-          new TextInputBuilder()
-            .setCustomId(FIELD_IDS.passport)
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true)
-            .setMaxLength(20),
-        ),
-      new LabelBuilder()
-        .setLabel(messages.editModal.nameLabel)
-        .setDescription(messages.editModal.optionalHint)
+        .setLabel(messages.addModal.nameLabel)
         .setTextInputComponent(
           new TextInputBuilder()
             .setCustomId(FIELD_IDS.name)
             .setStyle(TextInputStyle.Short)
-            .setRequired(false)
-            .setMaxLength(80),
+            .setRequired(true)
+            .setMaxLength(80)
+            .setValue(enrollment.name),
         ),
       new LabelBuilder()
-        .setLabel(messages.editModal.phoneLabel)
-        .setDescription(messages.editModal.optionalHint)
+        .setLabel(messages.addModal.phoneLabel)
+        .setDescription(messages.addModal.phoneDescription)
         .setTextInputComponent(
           new TextInputBuilder()
             .setCustomId(FIELD_IDS.phone)
             .setStyle(TextInputStyle.Short)
-            .setRequired(false)
+            .setRequired(true)
             .setMaxLength(15)
-            .setPlaceholder(messages.addModal.phonePlaceholder),
+            .setValue(enrollment.phone),
         ),
       new LabelBuilder()
-        .setLabel(messages.editModal.gymLabel)
+        .setLabel(messages.addModal.gymLabel)
         .setStringSelectMenuComponent(
           new StringSelectMenuBuilder().setCustomId(FIELD_IDS.gym).addOptions(gymOptions),
         ),
       new LabelBuilder()
-        .setLabel(messages.editModal.dateLabel)
-        .setDescription(messages.editModal.optionalHint)
+        .setLabel(messages.addModal.dateLabel)
+        .setDescription(messages.addModal.dateDescription)
         .setTextInputComponent(
           new TextInputBuilder()
             .setCustomId(FIELD_IDS.enrolledAt)
             .setStyle(TextInputStyle.Short)
-            .setRequired(false)
+            .setRequired(true)
             .setMaxLength(10)
-            .setPlaceholder(messages.addModal.dateDescription),
+            .setValue(formatDateBR(enrollment.enrolledAt)),
         ),
     );
 }
 
-/** Applies the provided changes to an existing enrollment; blank fields are kept as-is. */
+/** Validates the submitted edit and refreshes the record card in place. */
 export async function handleEditModalSubmit(
   interaction: ModalSubmitInteraction,
+  passport: string,
   repository: EnrollmentRepository,
 ): Promise<void> {
-  const passport = interaction.fields.getTextInputValue(FIELD_IDS.passport).trim();
-
   const existing = repository.findByPassport(passport);
   if (!existing) {
     await interaction.reply({
-      content: messages.editModal.notFound(passport),
+      content: messages.detailView.notFound,
       flags: MessageFlags.Ephemeral,
     });
     return;
   }
 
-  const changes: EnrollmentUpdate = { passport };
-  const changedLabels: string[] = [];
-  const labels = messages.addModal.fields;
-
   const name = interaction.fields.getTextInputValue(FIELD_IDS.name).trim();
-  if (name) {
+
+  const phone = formatPhoneNumber(interaction.fields.getTextInputValue(FIELD_IDS.phone));
+  if (!phone) {
+    await interaction.reply({
+      content: messages.addModal.invalidPhone,
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  const phoneOwner = repository.findByPhone(phone);
+  if (phoneOwner && phoneOwner.passport !== passport) {
+    await interaction.reply({
+      content: messages.addModal.phoneInUse(phone, phoneOwner.passport, phoneOwner.name),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  const enrolledAt = parseDateBR(interaction.fields.getTextInputValue(FIELD_IDS.enrolledAt));
+  if (!enrolledAt) {
+    await interaction.reply({
+      content: messages.addModal.invalidDate(getTodayBR()),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  const [rawGym] = interaction.fields.getStringSelectValues(FIELD_IDS.gym);
+  const gym = rawGym !== undefined && isGym(rawGym) ? rawGym : existing.gym;
+
+  const labels = messages.addModal.fields;
+  const changedLabels: string[] = [];
+  const changes: EnrollmentUpdate = { passport };
+
+  if (name && name !== existing.name) {
     changes.name = name;
     changedLabels.push(labels.name);
   }
-
-  const rawPhone = interaction.fields.getTextInputValue(FIELD_IDS.phone).trim();
-  if (rawPhone) {
-    const phone = formatPhoneNumber(rawPhone);
-    if (!phone) {
-      await interaction.reply({
-        content: messages.addModal.invalidPhone,
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
+  if (phone !== existing.phone) {
     changes.phone = phone;
     changedLabels.push(labels.phone);
   }
-
-  const [gym = KEEP_GYM] = interaction.fields.getStringSelectValues(FIELD_IDS.gym);
-  if (gym !== KEEP_GYM && isGym(gym) && gym !== existing.gym) {
+  if (gym !== existing.gym) {
     changes.gym = gym;
     changedLabels.push(labels.gym);
   }
-
-  const rawDate = interaction.fields.getTextInputValue(FIELD_IDS.enrolledAt).trim();
-  if (rawDate) {
-    const enrolledAt = parseDateBR(rawDate);
-    if (!enrolledAt) {
-      await interaction.reply({
-        content: messages.addModal.invalidDate(getTodayBR()),
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
+  if (enrolledAt !== existing.enrolledAt) {
     changes.enrolledAt = enrolledAt;
     changedLabels.push(labels.enrolledAt);
   }
 
-  if (changedLabels.length === 0) {
-    await interaction.reply({
-      content: messages.editModal.nothingToChange,
-      flags: MessageFlags.Ephemeral,
-    });
-    return;
-  }
+  const note =
+    changedLabels.length === 0
+      ? messages.editModal.nothingToChange
+      : `${messages.detailView.updatedNote}\n${messages.editModal.changedFieldsLabel}: ${changedLabels.join(', ')}`;
 
-  repository.update(changes);
+  if (changedLabels.length > 0) repository.update(changes);
   const updated = repository.findByPassport(passport) ?? existing;
 
-  const embed = new EmbedBuilder()
-    .setColor(EMBED_COLOR)
-    .setTitle(messages.editModal.updatedTitle)
-    .addFields(...enrollmentFields(updated), {
-      name: messages.editModal.changedFieldsLabel,
-      value: changedLabels.join(', '),
-      inline: true,
-    });
-
-  await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+  const view = buildDetailView(updated, note);
+  if (interaction.isFromMessage()) {
+    await interaction.update(view);
+  } else {
+    await interaction.reply({ ...view, flags: MessageFlags.Ephemeral });
+  }
 }

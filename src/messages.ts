@@ -25,18 +25,14 @@ export const messages = {
   panel: {
     title: '🏋️ Academias — Controle de Matrículas',
     description: [
-      'Use os botões abaixo para gerenciar as matrículas das academias **Sandy** e **Vinewood**.',
+      'Gerencie as matrículas das academias **Sandy** e **Vinewood**.',
       '',
       '💪 **Adicionar** — registrar uma nova matrícula',
-      '✏️ **Editar** — corrigir dados de uma matrícula',
-      '🔍 **Pesquisar** — consultar matrículas',
-      '💤 **Inativar** — desativar uma matrícula (nada é apagado)',
+      '📋 **Matrículas** — ver, pesquisar, editar e inativar registros',
     ].join('\n'),
     buttons: {
       add: 'Adicionar',
-      edit: 'Editar',
-      search: 'Pesquisar',
-      deactivate: 'Inativar',
+      browse: 'Matrículas',
     },
   },
 
@@ -54,6 +50,8 @@ export const messages = {
     dateDescription: 'Formato: dd/mm/aaaa',
 
     invalidPhone: '❌ Telefone inválido. Use o formato `(999) 999-999` (9 dígitos).',
+    phoneInUse: (phone: string, passport: string, name: string) =>
+      `❌ O telefone **${phone}** já está cadastrado para **${passport} — ${name}**.`,
     invalidDate: (todayExample: string) =>
       `❌ Data inválida. Use o formato \`dd/mm/aaaa\`, ex: \`${todayExample}\`.`,
     alreadyEnrolled: (passport: string, name: string, gymLabel: string, dateBR: string) =>
@@ -72,54 +70,59 @@ export const messages = {
     },
   },
 
-  searchModal: {
-    title: 'Pesquisar Matrículas',
-    termLabel: 'Passaporte ou nome',
-    termDescription: 'Passaporte exato ou parte do nome. Digite * para listar as últimas 20.',
-    termPlaceholder: 'Ex: 631, Ryoko ou *',
+  listView: {
+    title: '📋 Matrículas',
+    emptyAll: 'Nenhuma matrícula cadastrada ainda. Use 💪 Adicionar para registrar a primeira!',
+    emptyFiltered: (filter: string) => `Nenhuma matrícula encontrada para \`${filter}\`.`,
+    entryLine: (phone: string, gymLabel: string) => `Telefone: ${phone} · Academia: ${gymLabel}`,
+    statusActive: 'Status: ✅ Ativa',
+    statusInactive: 'Status: 💤 Inativa',
+    footer: (page: number, totalPages: number, total: number) =>
+      `Página ${page}/${totalPages} · ${total} matrícula(s)`,
+    filterNote: (filter: string) => `Filtro: ${filter}`,
+    selectPlaceholder: 'Selecionar matrícula para ver detalhes…',
+    buttons: {
+      filter: 'Filtrar',
+      clearFilter: 'Limpar filtro',
+      previous: 'Anterior',
+      next: 'Próxima',
+    },
+  },
 
-    resultsTitle: '🔍 Resultado da pesquisa',
-    recentTitle: '🕐 Últimas matrículas',
-    noResults: (term: string) => `🔍 Nenhuma matrícula encontrada para \`${term}\`.`,
-    resultLine: (phone: string, gymLabel: string, dateBR: string) =>
-      `📞 ${phone} · 🏋️ ${gymLabel} · 📅 ${dateBR}`,
+  filterModal: {
+    title: 'Filtrar Matrículas',
+    termLabel: 'Passaporte ou nome',
+    termDescription: 'Passaporte exato ou parte do nome. Deixe em branco para limpar o filtro.',
+    termPlaceholder: 'Ex: 631 ou Ryoko',
+  },
+
+  detailView: {
+    title: (passport: string, name: string) => `${passport} — ${name}`,
+    statusLabel: 'Status',
     statusActive: '✅ Ativa',
-    statusInactive: (dateBR: string) => `💤 Inativa desde ${dateBR}`,
-    totalsFooter: (active: number, inactive: number) =>
-      `Total: ${active} ativa(s) · ${inactive} inativa(s)`,
+    statusInactive: '💤 Inativa',
+    deactivatedByLabel: 'Inativada por',
+    deactivationInfo: (by: string, dateBR: string) => `${by} em ${dateBR}`,
+    updatedNote: '✏️ Matrícula atualizada!',
+    reactivatedNote: '🔄 Matrícula reativada!',
+    deactivatedNote: '💤 Matrícula inativada. O registro não foi apagado.',
+    notFound: 'ℹ️ Matrícula não encontrada — a lista foi atualizada.',
+    confirmDeactivation: (name: string) =>
+      `Tem certeza que deseja **inativar** a matrícula de **${name}**?\n` +
+      'O registro não será apagado — poderá ser reativado depois.',
+    buttons: {
+      edit: 'Editar',
+      deactivate: 'Inativar',
+      reactivate: 'Reativar',
+      back: 'Voltar',
+      confirmDeactivation: 'Sim, inativar',
+      cancel: 'Cancelar',
+    },
   },
 
   editModal: {
-    title: 'Editar Matrícula',
-    passportLabel: 'Passaporte',
-    passportDescription: 'Identifica a matrícula — o passaporte em si não é alterado',
-    optionalHint: 'Deixe em branco para manter o valor atual',
-    nameLabel: 'Novo nome',
-    phoneLabel: 'Novo telefone',
-    gymLabel: 'Academia',
-    keepGymOption: '— não alterar —',
-    dateLabel: 'Nova data da matrícula',
-
-    notFound: (passport: string) =>
-      `❌ Nenhuma matrícula encontrada para o passaporte \`${passport}\`. ` +
-      'Confira o número ou use 🔍 Pesquisar.',
-    nothingToChange: 'ℹ️ Nenhum campo foi preenchido — nada para alterar.',
-    updatedTitle: '✏️ Matrícula atualizada!',
+    title: (passport: string) => `Editar — ${passport}`,
+    nothingToChange: 'ℹ️ Nenhum dado foi alterado.',
     changedFieldsLabel: 'Campos alterados',
-  },
-
-  deactivateModal: {
-    title: 'Inativar Matrícula',
-    passportLabel: 'Passaporte',
-    passportPlaceholder: 'Ex: 631',
-
-    notFound: (passport: string) =>
-      `❌ Nenhuma matrícula encontrada para o passaporte \`${passport}\`. ` +
-      'Confira o número ou use 🔍 Pesquisar.',
-    alreadyInactive: (name: string) => `ℹ️ A matrícula de **${name}** já está inativa.`,
-    deactivatedTitle: '💤 Matrícula inativada',
-    deactivatedNote:
-      'O registro não foi apagado — se a pessoa se matricular de novo, será reativado automaticamente.',
-    deactivatedBy: 'Inativada por',
   },
 } as const;

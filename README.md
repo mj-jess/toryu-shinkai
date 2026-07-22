@@ -50,12 +50,18 @@ Padrões do projeto (código em inglês, texto de usuário em português, testes
 
 ## Funcionalidades
 
-| Botão        | Descrição                                                                                                                                                                   |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 💪 Adicionar | Modal com passaporte, nome, telefone, academia (padrão: As duas) e data (padrão: hoje). Se o passaporte já existir inativo, a matrícula é **reativada** com os novos dados. |
-| ✏️ Editar    | Informa o passaporte e preenche **só o que quer mudar** — campos em branco mantêm o valor atual.                                                                            |
-| 🔍 Pesquisar | Por passaporte exato ou parte do nome; `*` lista as últimas 20. Mostra status (✅/💤) e totais.                                                                             |
-| 💤 Inativar  | Nunca apaga o registro, só marca como inativo — guardando quem inativou e quando.                                                                                           |
+| Botão         | Descrição                                                                                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 💪 Adicionar  | Modal com passaporte, nome, telefone, academia (padrão: As duas) e data (padrão: hoje). Se o passaporte já existir inativo, a matrícula é **reativada** com os novos dados. |
+| 📋 Matrículas | Navegador completo (efêmero, cada pessoa vê o seu): lista paginada com filtro por passaporte/nome → seleciona um registro → card com todos os dados e ações.                |
+
+Dentro do card de um registro:
+
+- ✏️ **Editar** — modal **pré-preenchida** com os dados atuais; é só corrigir e enviar
+- 💤 **Inativar** — com confirmação; nunca apaga, e guarda quem inativou e quando
+- 🔄 **Reativar** — para registros inativos, reativa mantendo os dados
+
+Validações: passaporte e telefone são **únicos** (a mensagem de erro informa quem já usa o número).
 
 ## Dados
 
