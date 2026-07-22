@@ -21,7 +21,14 @@ Discord bot for Jess's GTA RP family server (guild: Tōryū Shinkai). First feat
 - Renewals view (🕒): active enrollments older than the selected period (1 month default — a fixed 30 days — or 2 weeks), most overdue first with "(há N dias)"; record card gains a 💰 Renovar button that sets the enrollment date to today (audited as "Matrícula renovada"). Prev/next/back are shared with the browse list — the session tracks which view is active.
 - Audit log channel (#log-matriculas): `/academia-log-setup` run inside a channel registers it (stored in the `settings` table); every create/edit/deactivate/reactivate posts a color-coded embed there — vertical `Chave: valor` list (full snapshot; on edits changed fields render as `before → after` inline), author line with Twemoji PNG icon (emoji in embed titles can't be baseline-aligned). Add replies with a short confirmation linking to the audit message (falls back to the full embed when no log channel is set). Audit failures never break the enrollment flow.
 
-**Dashboard v1 built locally (2026-07-22)** — `web/` npm workspace, not yet deployed:
+**Dashboard v1 LIVE (2026-07-22)** — `web/` npm workspace, deployed on Vercel:
+
+- **URL: https://toryu-shinkai-web-mu.vercel.app** (Vercel project `toryu-shinkai-web`, team "Jess' projects", Hobby/free, account created with the mj-jess GitHub). The `-mu` suffix was auto-assigned by Vercel (plain name was taken). Root Directory `web`; every push to `main` auto-deploys — no manual step.
+- Env vars live in the Vercel project settings: `DATABASE_URL` (Neon `main`), `AUTH_SECRET` (prod-only, generated 2026-07-22), `AUTH_DISCORD_ID`/`AUTH_DISCORD_SECRET` (**prod** app Tōryū Bot `1529480366069383408`), `ALLOWED_DISCORD_IDS` (4 IDs). Redirect registered on the prod app: `https://toryu-shinkai-web-mu.vercel.app/api/auth/callback/discord`.
+- Login validated live by Jess against production data.
+- The long `*-jess-projects-*.vercel.app` URLs are Vercel-internal (SSO-protected) — the public domain is only the `-mu` one.
+
+What v1 contains:
 
 - Next.js 16 (App Router) + MUI v9 + MUI X DataGrid (free tier) + Auth.js (next-auth v5 beta), dark/light toggle (dark default), all UI text in `web/src/messages.ts`
 - Login with Discord OAuth restricted to `ALLOWED_DISCORD_IDS` (comma-separated env; may become a UI-managed table later). Denied accounts land back on `/login?error=AccessDenied` with a friendly message
@@ -30,7 +37,9 @@ Discord bot for Jess's GTA RP family server (guild: Tōryū Shinkai). First feat
 - Reads the same Neon DB via `drizzle-orm/neon-http` (`@neondatabase/serverless`) — schema/types/labels imported from the bot via the `@bot/*` → `src/` tsconfig alias (single source of truth; only pure modules: `db/schema`, `enrollment/types`, `enrollment/format`, `messages`)
 - `npm run seed:dev` resets the **dev** branch with 24 test enrollments (guarded: refuses to run against the prod endpoint)
 
-**Not yet done / next candidates**: deploy `web/` on Vercel (prod Discord app OAuth redirect + Neon `main`), Renovações page, audit history page (needs the `audit_events` table), allowlist management UI, more family-admin features as Jess requests them.
+**Local dev of the dashboard — pending fixes** (Jess deferred; login locally is currently broken on purpose): register `http://localhost:3000/api/auth/callback/discord` on the **dev** Discord app and put the dev app's Client Secret in `web/.env.local` (it currently holds the prod secret with the dev app id — mismatched; the TODO is written inside the file).
+
+**Not yet done / next candidates**: Renovações page, audit history page (needs the `audit_events` table), allowlist management UI, more family-admin features as Jess requests them.
 
 ## Production hosting (since 2026-07-22)
 

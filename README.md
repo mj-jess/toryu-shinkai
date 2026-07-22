@@ -95,7 +95,9 @@ Requisitos no Discord Developer Portal (uma vez, por aplicação):
 2. Em **Redirects**, adicione `http://localhost:3000/api/auth/callback/discord`.
 3. Copie o **Client Secret** para `AUTH_DISCORD_SECRET`.
 
-O dashboard reaproveita o schema/tipos do bot via alias `@bot/*` → `src/` — uma fonte de verdade só. Deploy em produção (Vercel + branch `main` do Neon) é o próximo passo.
+O dashboard reaproveita o schema/tipos do bot via alias `@bot/*` → `src/` — uma fonte de verdade só.
+
+**Produção**: https://toryu-shinkai-web-mu.vercel.app — projeto `toryu-shinkai-web` na Vercel (Root Directory `web`, envs no painel da Vercel, banco Neon `main`, login pelo app Discord de produção). Todo push na `main` redeploya sozinho.
 
 ## Dados
 
