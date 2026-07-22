@@ -23,12 +23,21 @@ _(As permissões incluem: ver canais, enviar mensagens e embeds.)_
 
 ## 3. Configurar e rodar
 
+Dois ambientes, dois arquivos de env (ambos gitignorados):
+
+| Arquivo      | Bot                  | Banco (Neon)  | Scripts                       |
+| ------------ | -------------------- | ------------- | ----------------------------- |
+| `.env`       | Tōryū Bot (produção) | branch `main` | `npm start`, `npm run deploy` |
+| `.env.local` | Tōryū Bot Dev        | branch `dev`  | `npm run dev`, `deploy:dev`   |
+
 ```bash
-cp .env.example .env   # depois edite o .env com token e IDs
+cp .env.example .env.local  # edite com o token do bot dev + connection string do branch dev
 npm install
-npm run deploy         # registra os comandos no servidor (rodar 1x, ou quando mudar comandos)
-npm start              # liga o bot
+npm run deploy:dev          # registra os comandos do bot dev (1x, ou quando mudarem)
+npm run dev                 # liga o bot dev localmente
 ```
+
+⚠️ `npm start` sobe o bot de **produção** — só a VM roda isso. Localmente, sempre `npm run dev`.
 
 ### Scripts de desenvolvimento
 
@@ -69,13 +78,13 @@ Auditoria: rode `/academia-log-setup` dentro de um canal (ex: **#log-matriculas*
 
 ## Dados
 
-Os registros ficam em `data/family.db` (SQLite). Para backup, basta copiar esse arquivo.
+Os registros ficam num **Postgres gerenciado (Neon, free tier)**: branch `main` = produção, branch `dev` = desenvolvimento — o bot dev nunca enxerga dados de produção.
 
-O schema é versionado em `migrations/` (SQL puro) e aplicado automaticamente quando o bot sobe. Plano futuro (registrado no [CLAUDE.md](CLAUDE.md)): migrar para Drizzle + Postgres (Neon) quando o dashboard web começar.
+O schema mora em `src/db/schema.ts` (Drizzle). Para mudar o banco: edite o schema → `npm run db:generate` → a migration SQL cai em `drizzle/` (commitada) e é aplicada automaticamente quando o bot sobe. Backups e restauração ficam no painel do Neon (histórico point-in-time).
 
 ## Produção (24/7 na Oracle Cloud)
 
-O bot roda numa VM **Always Free** da Oracle Cloud (Ubuntu 24.04, `VM.Standard.E2.1.Micro`, região São Paulo), gerenciado pelo **systemd** (`familia-bot.service`): sobe no boot da VM, reinicia sozinho em caso de crash e loga no `journalctl`. O banco de produção vive só na VM (`~/toryu-shinkai/data/family.db`).
+O bot roda numa VM **Always Free** da Oracle Cloud (Ubuntu 24.04, `VM.Standard.E2.1.Micro`, região São Paulo), gerenciado pelo **systemd** (`familia-bot.service`): sobe no boot da VM, reinicia sozinho em caso de crash e loga no `journalctl`. O banco fica no **Neon** (fora da VM) — a VM é descartável: recriá-la é só repetir a tabela abaixo.
 
 ### Como o servidor foi montado
 

@@ -21,30 +21,29 @@ Discord bot for Jess's GTA RP family server (guild: Tōryū Shinkai). First feat
 - Renewals view (🕒): active enrollments older than the selected period (1 month default — a fixed 30 days — or 2 weeks), most overdue first with "(há N dias)"; record card gains a 💰 Renovar button that sets the enrollment date to today (audited as "Matrícula renovada"). Prev/next/back are shared with the browse list — the session tracks which view is active.
 - Audit log channel (#log-matriculas): `/academia-log-setup` run inside a channel registers it (stored in the `settings` table); every create/edit/deactivate/reactivate posts a color-coded embed there — vertical `Chave: valor` list (full snapshot; on edits changed fields render as `before → after` inline), author line with Twemoji PNG icon (emoji in embed titles can't be baseline-aligned). Add replies with a short confirmation linking to the audit message (falls back to the full embed when no log channel is set). Audit failures never break the enrollment flow.
 
-**Not yet done / next candidates**: dev Discord app for local testing (see "Production hosting"), web dashboard (future), more family-admin features as Jess requests them.
+**Not yet done / next candidates**: web dashboard (decided 2026-07-22: read-only v1 — enrollments, renewals queue, audit history — Next.js in a `web/` folder of this repo, deployed on Vercel free, Discord OAuth login restricted to an ID allowlist; audit history needs a new `audit_events` table first), more family-admin features as Jess requests them.
 
 ## Production hosting (since 2026-07-22)
 
 - **Oracle Cloud Always Free VM**: Ubuntu 24.04, `VM.Standard.E2.1.Micro` (1 OCPU/1GB + 1GB swap), region sa-saopaulo-1, public IP `146.235.44.150`, SSH key `~/.ssh/oracle-bot.key` (user `ubuntu`).
 - Bot managed by systemd (`familia-bot.service`): starts on boot, `Restart=always`, logs via `journalctl -u familia-bot`. Repo cloned at `~/toryu-shinkai` via a read-only GitHub deploy key.
-- **Prod DB lives only on the VM** (`~/toryu-shinkai/data/family.db`, started empty on purpose — local data was test-only). Prod `.env` holds the Tōryū Bot token.
-- Update flow: `ssh -i ~/.ssh/oracle-bot.key ubuntu@146.235.44.150 'cd toryu-shinkai && git pull && npm ci && sudo systemctl restart familia-bot'`. Run `npm run deploy` (on any machine with the prod `.env`) only when slash commands change. Day-to-day commands are in README.md.
-- **Dev/prod split**: prod token must never run locally (double-handling). Local development uses a separate Discord application ("Tōryū Bot Dev", pending creation) with its own token/CLIENT_ID in the local `.env` and the local SQLite file — interactions route per application, so dev clicks can never touch prod data.
+- **Database: Neon Postgres** (free tier), project "Toryu Shinkai" (`late-wind-42376214`, aws sa-east-1, account mj-jess). Branch `main` = production, branch `dev` = development. The old SQLite file remains on the VM as `data/family.db.sqlite-backup` (pre-migration snapshot, safe to delete later).
+- Update flow: `ssh -i ~/.ssh/oracle-bot.key ubuntu@146.235.44.150 'cd toryu-shinkai && git pull && npm ci && sudo systemctl restart familia-bot'`. Run `npm run deploy` (prod) / `npm run deploy:dev` (dev app) only when slash commands change. Day-to-day commands are in README.md.
+- **Dev/prod split — two Discord apps + two DB branches**: `.env` = production (Tōryū Bot `1529480366069383408` + Neon `main`; used by the VM, `npm start`, `npm run deploy`). `.env.local` = development (Tōryū Bot Dev `1529575914307059855` + Neon `dev`; used by `npm run dev`, `npm run deploy:dev`). Interactions route per application, so dev clicks can never touch prod data. Never run the prod token locally (double-handling).
 
 ## Setting up on a new machine
 
-After cloning, three things do NOT come with the repo:
+After cloning, two things do NOT come with the repo:
 
-1. **`.env`** (gitignored) — copy from `.env.example` and fill `DISCORD_TOKEN`, `CLIENT_ID`, `GUILD_ID`. The token is in the Discord Developer Portal (app "Tōryū Bot", account mj-jess); if lost, Reset Token there. IDs: CLIENT_ID `1529480366069383408`, GUILD_ID `1399382584101703723`.
-2. **`data/family.db`** (gitignored) — the real enrollment data lives only on the machine that ran the bot. Copy `data/family.db` from the old machine to keep the records; otherwise the bot starts empty (schema is recreated by migrations automatically).
-3. **Git credentials** — the remote is pinned to the mj-jess account. If the machine has multiple GitHub accounts on `gh`, reproduce the repo-local helper:
+1. **`.env` / `.env.local`** (gitignored) — copy from `.env.example` and fill `DISCORD_TOKEN`, `CLIENT_ID`, `GUILD_ID`, `DATABASE_URL` for each environment (see "Production hosting" for which app/branch goes where). Tokens live in the Discord Developer Portal (account mj-jess); connection strings in the Neon dashboard. GUILD_ID `1399382584101703723`. There is no local data file to copy — all data is in Neon.
+2. **Git credentials** — the remote is pinned to the mj-jess account. If the machine has multiple GitHub accounts on `gh`, reproduce the repo-local helper:
    ```bash
    git config credential.helper '!f() { echo username=mj-jess; echo "password=$(gh auth token --user mj-jess)"; }; f'
    ```
 
-Then: `npm install` → `npm start`. Run `npm run deploy` only when slash commands change.
+Then: `npm install` → `npm run dev` (local dev bot). Production runs on the VM via systemd — never `npm start` locally.
 
-⚠️ **Run the bot on ONE machine at a time** — two processes with the same token both receive every interaction and will double-handle events.
+⚠️ **One process per token** — two processes with the same token both receive every interaction and will double-handle events.
 
 ## Code standards
 
@@ -57,17 +56,17 @@ Then: `npm install` → `npm start`. Run `npm run deploy` only when slash comman
 
 ## Tests
 
-- Vitest, colocated: `foo.test.ts` next to `foo.ts`. Shared doubles in `src/enrollment/test-utils.ts` (fake button/select/modal interactions + payload inspectors).
-- Repository tests use an in-memory SQLite DB via `createDatabase(':memory:')` — which runs the real migrations, so tests always exercise the production schema.
-- Handlers take dependencies as parameters (repository, sessions) so tests pass fakes — keep new handlers dependency-injected.
+- Vitest, colocated: `foo.test.ts` next to `foo.ts`. Shared doubles in `src/enrollment/test-utils.ts` (fake button/select/modal interactions + payload inspectors + `browseState` factory + `fakeAuditLog`).
+- DB-touching tests use **PGlite** (in-process Postgres) via `createTestDatabase()` from `src/db/test-database.ts` — it runs the real Drizzle migrations, so tests always exercise the production schema. Pattern: one instance per file (`beforeAll`), `testDb.reset()` in `beforeEach`, `close()` in `afterAll`.
+- Handlers take dependencies as parameters (repository, sessions, audit) so tests pass fakes — keep new handlers dependency-injected.
 - Run: `npm test` (CI mode) or `npm run test:watch`.
 
 ## Architecture
 
 - `src/index.ts` — client bootstrap; routes `/academia-setup` + delegates every `enrollment:*` interaction to the dispatcher.
 - `src/messages.ts` — every Portuguese string.
-- `src/database.ts` — SQLite connection (better-sqlite3, WAL); applies migrations on open.
-- `src/migrations.ts` — migration runner (`PRAGMA user_version` tracks the applied version).
+- `src/database.ts` — Postgres connection (Drizzle + node-postgres pool); applies the `drizzle/` migrations on boot. Exports the driver-agnostic `Database` type.
+- `src/db/schema.ts` — Drizzle schema, the single source of truth for tables. `src/db/test-database.ts` — PGlite factory for tests.
 - `src/settings.ts` — key-value settings repository (e.g. the audit log channel id).
 - `src/enrollment/` — feature module:
   - `panel.ts` (fixed message with the two entry points: add + browse)
@@ -80,9 +79,9 @@ Then: `npm install` → `npm start`. Run `npm run deploy` only when slash comman
 
 ## Migrations
 
-- Plain SQL files in `migrations/`, named `<version>-<kebab-description>.sql`. Versions are strictly increasing integers. Applied automatically on boot.
-- Each migration runs in a transaction; **never edit a migration that may already be applied** — add a new one.
-- Applied so far: 001 enrollments table, 002 deactivation audit columns, 003 unique phone index, 004 settings table.
+- Managed by **drizzle-kit**: edit `src/db/schema.ts`, run `npm run db:generate` — it emits SQL to `drizzle/` (committed). Applied automatically on boot (bot) and in `createTestDatabase()` (tests).
+- **Never edit a migration that may already be applied** — change the schema and generate a new one.
+- `drizzle/0000_*.sql` is the baseline: enrollments + settings, carrying over everything from the four SQLite-era migrations (unique passport/phone, deactivation audit columns, gym check).
 
 ## Domain rules (enrollment)
 
@@ -90,16 +89,15 @@ Then: `npm install` → `npm start`. Run `npm run deploy` only when slash comman
 - Re-enrolling an inactive passport **reactivates** it (via Add: with new data; via card 🔄: keeping data). Reactivation clears the deactivation audit.
 - Passport and phone are unique. Phone stored formatted `(999) 999-999`. Dates stored ISO (`yyyy-mm-dd`), displayed `dd/mm/yyyy`.
 
-## Database roadmap (decided 2026-07-22)
+## Database roadmap
 
-- **Now**: SQLite on the prod VM's persistent disk — hosting on a real VPS removed the need to migrate yet.
-- **When the web dashboard starts**: migrate to **Drizzle ORM + Postgres**. Free-tier plan: Neon (Postgres), dashboard on Vercel. Keep everything as close to R$0/month as possible — explicit constraint from Jess.
-- The repository pattern + versioned migrations exist to keep that future migration cheap: only `database.ts`, `migrations.ts`, and repositories should need to change.
-- Jess knows: GitHub hosts code only (Pages = static files, no bot process); a 24/7 bot needs a real host.
+- **Done (2026-07-22)**: migrated SQLite → **Neon Postgres with Drizzle ORM**, triggered by the dashboard decision, exactly as planned — only `database.ts`, migrations, and repositories changed (plus the async ripple through handlers). Repositories are async now.
+- **Next (dashboard)**: `web/` Next.js app on Vercel reading the same Neon DB (read-only v1), Discord OAuth allowlist login. Requires an `audit_events` table so audit history is queryable. Keep everything as close to R$0/month as possible — explicit constraint from Jess.
+- Dates stay ISO **text** columns (`yyyy-mm-dd` / `yyyy-mm-dd hh:mm:ss`) on purpose — the app logic and formatters are string-based; revisit only if the dashboard needs real timestamps.
 
 ## Environment constraints
 
-- Current machine (since 2026-07-22): Node 24.18.0 (LTS, via winget). better-sqlite3 is pinned to `^12.11.1` — the newest npm release with prebuilt Windows binaries for Node 24 (ABI 137); v13.x ships no prebuilds yet and would require Python + VS Build Tools to compile. Vitest stays on v3 (v4 bump untested, optional).
+- Current machine (since 2026-07-22): Node 24.18.0 (LTS, via winget) — same version on the prod VM. Vitest stays on v3 (v4 bump untested, optional).
 - The repo sets `core.autocrlf false` locally (Git for Windows' system config sets it to `true`, which checks files out as CRLF and breaks `prettier --check`). On a fresh clone, run `git config core.autocrlf false` before anything else.
 
 ## Checks before finishing any task
