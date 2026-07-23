@@ -2,6 +2,7 @@ import { PermissionFlagsBits, REST, Routes, SlashCommandBuilder } from 'discord.
 import { AUDIT_SETUP_COMMAND_NAME } from './enrollment/audit-log.js';
 import { SETUP_COMMAND_NAME } from './enrollment/panel.js';
 import { requireEnv } from './env.js';
+import { KOI_LOG_SETUP_COMMAND_NAME, KOI_SETUP_COMMAND_NAME } from './koi/panel.js';
 import { messages } from './messages.js';
 
 const commands = [
@@ -13,6 +14,16 @@ const commands = [
   new SlashCommandBuilder()
     .setName(AUDIT_SETUP_COMMAND_NAME)
     .setDescription(messages.auditSetup.commandDescription)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .toJSON(),
+  new SlashCommandBuilder()
+    .setName(KOI_SETUP_COMMAND_NAME)
+    .setDescription(messages.koiSetup.commandDescription)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .toJSON(),
+  new SlashCommandBuilder()
+    .setName(KOI_LOG_SETUP_COMMAND_NAME)
+    .setDescription(messages.koiSetup.logCommandDescription)
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .toJSON(),
 ];

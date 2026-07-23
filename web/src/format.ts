@@ -7,7 +7,7 @@ export function formatTimestampBR(timestamp: string): string {
   return `${formatDateBR(date)} às ${time.slice(0, 5)}`;
 }
 
-/** Formats whole R$ amounts with pt-BR thousand separators (R$ 5.225). */
+/** Formats whole amounts in the in-game currency ($ 5.225). */
 export function formatMoney(value: number): string {
-  return `R$ ${value.toLocaleString('pt-BR')}`;
+  return `$ ${value.toLocaleString('pt-BR')}`;
 }

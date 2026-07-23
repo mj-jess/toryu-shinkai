@@ -1,13 +1,17 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { KoiView } from '@/components/koi-view';
-import { getKoiCatalog, getKoiIngredients } from '@/db';
+import { getKoiCatalog, getKoiIngredients, listKoiSales } from '@/db';
 import { messages } from '@/messages';
 import { requireUser } from '@/session';
 
 export default async function KoiPage() {
   await requireUser();
-  const [products, ingredients] = await Promise.all([getKoiCatalog(), getKoiIngredients()]);
+  const [products, ingredients, sales] = await Promise.all([
+    getKoiCatalog(),
+    getKoiIngredients(),
+    listKoiSales(),
+  ]);
 
   return (
     <Box>
@@ -17,7 +21,7 @@ export default async function KoiPage() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         {messages.koi.subtitle}
       </Typography>
-      <KoiView products={products} ingredients={ingredients} />
+      <KoiView products={products} ingredients={ingredients} sales={sales} />
     </Box>
   );
 }

@@ -10,6 +10,17 @@ import { BrowseSessions } from './enrollment/browse-session.js';
 import { buildPanelMessage, SETUP_COMMAND_NAME } from './enrollment/panel.js';
 import { EnrollmentRepository } from './enrollment/repository.js';
 import { requireEnv } from './env.js';
+import { handleKoiInteraction, type KoiContext } from './koi/handlers.js';
+import {
+  buildKoiPanelMessage,
+  KOI_LOG_CHANNEL_SETTING_KEY,
+  KOI_LOG_SETUP_COMMAND_NAME,
+  KOI_PANEL_CHANNEL_SETTING_KEY,
+  KOI_SETUP_COMMAND_NAME,
+} from './koi/panel.js';
+import { KoiChannelLog } from './koi/sales-log.js';
+import { KoiSalesRepository } from './koi/sales-repository.js';
+import { startWeeklyPostSchedule } from './koi/weekly-post.js';
 import { messages } from './messages.js';
 import { SettingsRepository } from './settings.js';
 
@@ -24,8 +35,16 @@ const ctx: BrowseContext = {
   audit: new EnrollmentAuditLog(client, settings),
 };
 
+const koiSales = new KoiSalesRepository(db);
+const koiCtx: KoiContext = {
+  db,
+  sales: koiSales,
+  log: new KoiChannelLog(client, settings),
+};
+
 client.once(Events.ClientReady, (readyClient) => {
   console.log(`Bot online as ${readyClient.user.tag}`);
+  startWeeklyPostSchedule({ client, settings, sales: koiSales });
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -56,6 +75,39 @@ client.on(Events.InteractionCreate, async (interaction) => {
       });
       return;
     }
+
+    // /koi-setup — publishes the KOI panel; the weekly summary lands in this channel
+    if (interaction.isChatInputCommand() && interaction.commandName === KOI_SETUP_COMMAND_NAME) {
+      if (!interaction.channel?.isSendable()) {
+        await interaction.reply({
+          content: messages.setup.channelNotSendable,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      await interaction.channel.send(buildKoiPanelMessage());
+      await settings.set(KOI_PANEL_CHANNEL_SETTING_KEY, interaction.channelId);
+      await interaction.reply({
+        content: messages.koiSetup.panelPublished,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    // /koi-log-setup — registers the current channel for the sale records
+    if (
+      interaction.isChatInputCommand() &&
+      interaction.commandName === KOI_LOG_SETUP_COMMAND_NAME
+    ) {
+      await settings.set(KOI_LOG_CHANNEL_SETTING_KEY, interaction.channelId);
+      await interaction.reply({
+        content: messages.koiSetup.logChannelConfigured,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    if (await handleKoiInteraction(interaction, koiCtx)) return;
 
     await handleEnrollmentInteraction(interaction, ctx);
   } catch (error) {

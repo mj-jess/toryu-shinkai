@@ -1,7 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { updateKoiIngredient, updateKoiProduct } from '@/db';
+import { priceSaleItems } from '@bot/koi/pricing';
+import { getKoiCatalog, insertKoiSale, updateKoiIngredient, updateKoiProduct } from '@/db';
 import { requireUser } from '@/session';
 
 export interface SaveResult {
@@ -29,6 +30,53 @@ export async function saveProduct(
   await updateKoiProduct(id, { ...values, name });
   revalidatePath('/koi');
   return { ok: true };
+}
+
+export interface SaleResult {
+  ok: boolean;
+  /** Filled on success so the page can show what was registered. */
+  units?: number;
+  revenue?: number;
+  profit?: number;
+}
+
+/**
+ * Registers a street-sale shift from the dashboard — same data the Discord
+ * modal writes: a date plus quantities, priced by the current street prices.
+ */
+export async function registerSale(
+  soldAt: string,
+  quantities: { productId: number; quantity: number }[],
+): Promise<SaleResult> {
+  const user = await requireUser();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(soldAt)) return { ok: false };
+
+  const clean = quantities.filter(
+    (entry) => Number.isInteger(entry.quantity) && entry.quantity > 0,
+  );
+  if (clean.length === 0) return { ok: false };
+
+  const items = priceSaleItems(await getKoiCatalog(), clean);
+  if (items.length === 0) return { ok: false };
+
+  await insertKoiSale({
+    soldAt,
+    soldBy: user.name,
+    soldById: user.discordId,
+    items,
+  });
+
+  revalidatePath('/koi');
+  revalidatePath('/inicio');
+
+  const revenue = items.reduce((total, item) => total + item.unitPrice * item.quantity, 0);
+  const cost = items.reduce((total, item) => total + item.unitCost * item.quantity, 0);
+  return {
+    ok: true,
+    units: items.reduce((total, item) => total + item.quantity, 0),
+    revenue,
+    profit: revenue - cost,
+  };
 }
 
 export async function saveIngredient(

@@ -81,6 +81,18 @@ Validações: passaporte e telefone são **únicos** (a mensagem de erro informa
 
 Auditoria: rode `/academia-log-setup` dentro de um canal (ex: **#log-matriculas**) e toda ação — criar, editar, inativar, reativar, renovar — vira um embed colorido lá, com os dados completos e quem fez.
 
+### Restaurante KOI
+
+Rode `/koi-setup` no canal do KOI para publicar o painel (e `/koi-log-setup` num canal de registros, opcional):
+
+| Botão              | Descrição                                                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| 💰 Registrar venda | No fim do turno, informe só as quantidades vendidas na rua — o sistema calcula valor e lucro pelos preços cadastrados |
+| 📊 Semana          | Como está o restaurante nesta semana: arrecadado, lucro, prato campeão e ranking de vendedores                        |
+| 🧾 Minhas vendas   | O seu resumo da semana                                                                                                |
+
+Toda **segunda de manhã** o bot publica sozinho o fechamento da semana no canal do painel. As vendas também podem ser registradas pelo dashboard (KOI → aba **Vendas de rua**), que mostra histórico, gráficos e rankings.
+
 ## Dashboard web (`web/`)
 
 Painel em **Next.js + Material UI** (workspace npm dentro do repo) que lê o mesmo banco do bot: login com Discord (restrito à allowlist `ALLOWED_DISCORD_IDS`), a página **Matrículas** (tabela com busca, filtro por coluna, ordenação e paginação + página de detalhe, somente leitura) e a página **KOI** (margens do restaurante comprando vs coletando ingredientes, simulador de preço de rua e edição dos preços — que espelham o jogo e são configuráveis).

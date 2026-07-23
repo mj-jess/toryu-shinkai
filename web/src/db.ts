@@ -1,9 +1,23 @@
 import { neon } from '@neondatabase/serverless';
-import { asc, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { drizzle, type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import { enrollments, koiIngredients, koiProducts, koiRecipeItems } from '@bot/db/schema';
+import {
+  enrollments,
+  koiIngredients,
+  koiProducts,
+  koiRecipeItems,
+  koiSaleItems,
+  koiSales,
+} from '@bot/db/schema';
 import type { Enrollment } from '@bot/enrollment/types';
-import type { KoiIngredient, KoiProduct, KoiProductWithRecipe } from '@bot/koi/types';
+import { itemsCost, itemsRevenue } from '@bot/koi/sales-summary';
+import type {
+  KoiIngredient,
+  KoiProduct,
+  KoiProductWithRecipe,
+  KoiSale,
+  KoiSaleItem,
+} from '@bot/koi/types';
 
 let db: NeonHttpDatabase | null = null;
 
@@ -89,4 +103,80 @@ export async function updateKoiIngredient(
   },
 ): Promise<void> {
   await getDb().update(koiIngredients).set(values).where(eq(koiIngredients.id, id));
+}
+
+/** Mirrors KoiSalesRepository.insert — the bot and the dashboard write alike. */
+export async function insertKoiSale(sale: {
+  soldAt: string;
+  soldBy: string;
+  soldById: string;
+  items: KoiSaleItem[];
+}): Promise<void> {
+  const db = getDb();
+  const [row] = await db
+    .insert(koiSales)
+    .values({
+      soldAt: sale.soldAt,
+      soldBy: sale.soldBy,
+      soldById: sale.soldById,
+      revenue: itemsRevenue(sale.items),
+      cost: itemsCost(sale.items),
+    })
+    .returning({ id: koiSales.id });
+
+  if (!row) throw new Error('Failed to insert KOI sale');
+
+  await db.insert(koiSaleItems).values(
+    sale.items.map((item) => ({
+      saleId: row.id,
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      unitCost: item.unitCost,
+    })),
+  );
+}
+
+/**
+ * Shifts newest first, with their items. Without a range it returns every
+ * shift (the index lists them all); the dashboard passes its 30-day window.
+ */
+export async function listKoiSales(fromIso?: string, toIso?: string): Promise<KoiSale[]> {
+  const db = getDb();
+  const range =
+    fromIso && toIso ? and(gte(koiSales.soldAt, fromIso), lte(koiSales.soldAt, toIso)) : undefined;
+  const sales = await db
+    .select()
+    .from(koiSales)
+    .where(range)
+    .orderBy(desc(koiSales.soldAt), desc(koiSales.id));
+  if (sales.length === 0) return [];
+
+  const rows = await db
+    .select({
+      saleId: koiSaleItems.saleId,
+      productId: koiSaleItems.productId,
+      productName: koiProducts.name,
+      quantity: koiSaleItems.quantity,
+      unitPrice: koiSaleItems.unitPrice,
+      unitCost: koiSaleItems.unitCost,
+    })
+    .from(koiSaleItems)
+    .innerJoin(koiProducts, eq(koiProducts.id, koiSaleItems.productId))
+    .where(
+      inArray(
+        koiSaleItems.saleId,
+        sales.map((sale) => sale.id),
+      ),
+    )
+    .orderBy(asc(koiSaleItems.id));
+
+  const bySale = new Map<number, KoiSaleItem[]>();
+  for (const { saleId, ...item } of rows) {
+    const list = bySale.get(saleId) ?? [];
+    list.push(item);
+    bySale.set(saleId, list);
+  }
+
+  return sales.map((sale) => ({ ...sale, items: bySale.get(sale.id) ?? [] }));
 }

@@ -5,7 +5,8 @@ export function formatPhoneNumber(input: string): string | null {
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
-function toISO(date: Date): string {
+/** Formats a date as ISO (yyyy-mm-dd), local time. */
+export function toISO(date: Date): string {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   return `${date.getFullYear()}-${month}-${day}`;

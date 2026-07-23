@@ -153,6 +153,68 @@ export const messages = {
     channelConfigured: '✅ Os logs de auditoria das matrículas serão enviados neste canal.',
   },
 
+  koiSetup: {
+    commandDescription: 'Publica o painel do restaurante KOI neste canal (admin)',
+    panelPublished: '✅ Painel do KOI publicado neste canal. O resumo semanal virá para cá.',
+    logCommandDescription: 'Define este canal como destino dos registros de venda do KOI (admin)',
+    logChannelConfigured: '✅ Os registros de venda do KOI serão enviados neste canal.',
+  },
+
+  koiPanel: {
+    title: '🍜 KOI — Vendas de Rua',
+    description: [
+      'Vendeu na rua? Registre aqui no fim do turno — leva 30 segundos.',
+      '',
+      '💰 **Registrar venda** — informe só as quantidades; o sistema calcula o valor',
+      '📊 **Semana** — como está o restaurante nesta semana',
+      '🧾 **Minhas vendas** — o seu resumo da semana',
+    ].join('\n'),
+    buttons: {
+      sale: 'Registrar venda',
+      week: 'Semana',
+      mine: 'Minhas vendas',
+    },
+  },
+
+  koiSale: {
+    modalTitle: 'Venda de rua — resumo do turno',
+    quantityPlaceholder: 'Quantidade vendida (deixe vazio se não vendeu)',
+    pickPrompt: 'Escolha até 5 pratos para registrar:',
+    pickPlaceholder: 'Quais pratos você vendeu?',
+    noProducts: '❌ Nenhum prato cadastrado no KOI ainda.',
+    invalidQuantity: '❌ As quantidades devem ser números inteiros (ex: 12).',
+    nothingSold: '❌ Informe a quantidade de pelo menos um prato.',
+    saved: (units: number, revenue: string, profit: string, url: string | null) =>
+      [
+        `✅ Venda registrada: **${units}** ${units === 1 ? 'item' : 'itens'} · ${revenue}`,
+        `Lucro estimado: ${profit}`,
+        url ? `[Ver registro](${url})` : null,
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    logTitle: 'Venda de rua registrada',
+    seller: 'Vendedor',
+    date: 'Data',
+    revenue: 'Valor arrecadado',
+    profit: 'Lucro estimado',
+  },
+
+  koiSummary: {
+    weekTitle: '📊 KOI — Vendas da semana',
+    weeklyTitle: '📊 KOI — Fechamento da semana',
+    mineTitle: '🧾 KOI — Minhas vendas da semana',
+    period: (from: string, to: string) => `Período: ${from} a ${to}`,
+    empty: 'Nenhuma venda de rua registrada neste período.',
+    revenue: 'Arrecadado',
+    profit: 'Lucro estimado',
+    units: 'Itens vendidos',
+    shifts: 'Turnos registrados',
+    topDish: 'Prato campeão',
+    topSeller: 'Vendedor destaque',
+    byDish: 'Por prato',
+    bySeller: 'Ranking de vendedores',
+  },
+
   auditLog: {
     titles: {
       created: 'Matrícula criada',

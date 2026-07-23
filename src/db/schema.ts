@@ -38,7 +38,7 @@ export const settings = pgTable('settings', {
 /**
  * KOI restaurant catalog. Prices mirror the in-game values as editable
  * defaults — when the game changes, the system is updated, not the code.
- * All prices are whole R$ per unit.
+ * All prices are whole units of the in-game currency ($).
  */
 export const koiIngredients = pgTable('koi_ingredients', {
   id: serial('id').primaryKey(),
@@ -61,6 +61,43 @@ export const koiProducts = pgTable('koi_products', {
   totemPrice: integer('totem_price').notNull(),
   /** Street price per unit — free-form and expected to change often. */
   streetPrice: integer('street_price').notNull(),
+});
+
+/**
+ * One street-sale shift, registered from Discord: what a member sold and how
+ * much it brought in. Prices and costs are snapshots — editing the catalog
+ * later must never rewrite history.
+ */
+export const koiSales = pgTable('koi_sales', {
+  id: serial('id').primaryKey(),
+  /** Shift date, ISO (yyyy-mm-dd). */
+  soldAt: text('sold_at').notNull(),
+  /** Discord tag shown in summaries. */
+  soldBy: text('sold_by').notNull(),
+  /** Discord user id — the stable key for rankings. */
+  soldById: text('sold_by_id').notNull(),
+  /** Total collected, in whole in-game currency. */
+  revenue: integer('revenue').notNull(),
+  /** Estimated ingredient cost (collecting scenario), same unit. */
+  cost: integer('cost').notNull(),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`to_char(now(), 'YYYY-MM-DD HH24:MI:SS')`),
+});
+
+export const koiSaleItems = pgTable('koi_sale_items', {
+  id: serial('id').primaryKey(),
+  saleId: integer('sale_id')
+    .notNull()
+    .references(() => koiSales.id, { onDelete: 'cascade' }),
+  productId: integer('product_id')
+    .notNull()
+    .references(() => koiProducts.id),
+  quantity: integer('quantity').notNull(),
+  /** Street price charged per unit at the time of the sale. */
+  unitPrice: integer('unit_price').notNull(),
+  /** Estimated cost per unit at the time of the sale. */
+  unitCost: integer('unit_cost').notNull(),
 });
 
 /** Ingredient quantities consumed by one production run of a product. */

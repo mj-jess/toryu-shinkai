@@ -6,8 +6,10 @@ import { migrationsFolder, type Database } from '../database.js';
 
 export interface TestDatabase {
   db: Database;
-  /** Empties every table — call between tests to reuse one instance per file. */
+  /** Empties enrollments and settings — call between tests to reuse one instance per file. */
   reset(): Promise<void>;
+  /** Empties the KOI sales, keeping the seeded catalog intact. */
+  resetSales(): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -25,6 +27,9 @@ export async function createTestDatabase(): Promise<TestDatabase> {
     reset: async () => {
       await db.execute(sql`TRUNCATE TABLE enrollments RESTART IDENTITY`);
       await db.execute(sql`TRUNCATE TABLE settings`);
+    },
+    resetSales: async () => {
+      await db.execute(sql`TRUNCATE TABLE koi_sale_items, koi_sales RESTART IDENTITY`);
     },
     close: () => client.close(),
   };

@@ -17,5 +17,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn({ profile }) {
       return typeof profile?.id === 'string' && allowedIds.includes(profile.id);
     },
+    // The Discord id identifies who registered a KOI sale, so carry it along.
+    jwt({ token, profile }) {
+      if (typeof profile?.id === 'string') token.discordId = profile.id;
+      return token;
+    },
+    session({ session, token }) {
+      const discordId = token.discordId;
+      if (typeof discordId === 'string') session.user.discordId = discordId;
+      return session;
+    },
   },
 });
