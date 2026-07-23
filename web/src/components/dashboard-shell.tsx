@@ -1,6 +1,7 @@
 'use client';
 
 import MenuIcon from '@mui/icons-material/Menu';
+import RamenDiningIcon from '@mui/icons-material/RamenDining';
 import SchoolIcon from '@mui/icons-material/School';
 import AppBar from '@mui/material/AppBar';
 import Avatar from '@mui/material/Avatar';
@@ -25,7 +26,10 @@ import { ColorModeToggle } from './color-mode-toggle';
 
 const DRAWER_WIDTH = 240;
 
-const navItems = [{ href: '/matriculas', label: messages.nav.matriculas, icon: <SchoolIcon /> }];
+const navItems = [
+  { href: '/matriculas', label: messages.nav.matriculas, icon: <SchoolIcon /> },
+  { href: '/koi', label: messages.nav.koi, icon: <RamenDiningIcon /> },
+];
 
 export interface ShellUser {
   name: string;

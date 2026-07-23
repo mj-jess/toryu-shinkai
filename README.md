@@ -49,6 +49,7 @@ npm run test:watch     # testes em modo watch
 npm run format         # formata o código (Prettier)
 npm run format:check   # só verifica a formatação
 npm run seed:dev       # reseta o banco DEV com 24 matrículas de teste
+npm run db:migrate:dev # aplica as migrations no banco DEV sem subir o bot
 npm run typecheck -w web   # tipos do dashboard
 npm run build -w web       # build de produção do dashboard
 ```
@@ -82,7 +83,7 @@ Auditoria: rode `/academia-log-setup` dentro de um canal (ex: **#log-matriculas*
 
 ## Dashboard web (`web/`)
 
-Painel em **Next.js + Material UI** (workspace npm dentro do repo) que lê o mesmo banco do bot — hoje somente leitura: login com Discord (restrito à allowlist `ALLOWED_DISCORD_IDS`) e a página **Matrículas** (tabela com busca, filtro por coluna, ordenação e paginação + página de detalhe).
+Painel em **Next.js + Material UI** (workspace npm dentro do repo) que lê o mesmo banco do bot: login com Discord (restrito à allowlist `ALLOWED_DISCORD_IDS`), a página **Matrículas** (tabela com busca, filtro por coluna, ordenação e paginação + página de detalhe, somente leitura) e a página **KOI** (margens do restaurante comprando vs coletando ingredientes, simulador de preço de rua e edição dos preços — que espelham o jogo e são configuráveis).
 
 ```bash
 cp web/.env.example web/.env.local   # preencha (veja o comentário em cada variável)

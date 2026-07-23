@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { boolean, check, pgTable, serial, text } from 'drizzle-orm/pg-core';
+import { boolean, check, integer, pgTable, serial, text, unique } from 'drizzle-orm/pg-core';
 
 /**
  * Dates are stored as ISO strings (`yyyy-mm-dd`) and timestamps as
@@ -34,3 +34,47 @@ export const settings = pgTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
 });
+
+/**
+ * KOI restaurant catalog. Prices mirror the in-game values as editable
+ * defaults — when the game changes, the system is updated, not the code.
+ * All prices are whole R$ per unit.
+ */
+export const koiIngredients = pgTable('koi_ingredients', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  /** Store (Arkham Store) price per unit. */
+  buyPrice: integer('buy_price').notNull(),
+  /** Whether members can collect it in-game instead of buying. */
+  collectible: boolean('collectible').notNull().default(false),
+  /** Cost per unit even when collected (e.g. milk needs an empty bottle). */
+  collectCost: integer('collect_cost').notNull().default(0),
+  note: text('note'),
+});
+
+export const koiProducts = pgTable('koi_products', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  /** Units produced per production run. */
+  batchYield: integer('batch_yield').notNull().default(10),
+  /** Totem (vending point) price per unit. */
+  totemPrice: integer('totem_price').notNull(),
+  /** Street price per unit — free-form and expected to change often. */
+  streetPrice: integer('street_price').notNull(),
+});
+
+/** Ingredient quantities consumed by one production run of a product. */
+export const koiRecipeItems = pgTable(
+  'koi_recipe_items',
+  {
+    id: serial('id').primaryKey(),
+    productId: integer('product_id')
+      .notNull()
+      .references(() => koiProducts.id),
+    ingredientId: integer('ingredient_id')
+      .notNull()
+      .references(() => koiIngredients.id),
+    quantity: integer('quantity').notNull(),
+  },
+  (table) => [unique().on(table.productId, table.ingredientId)],
+);

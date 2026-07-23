@@ -14,6 +14,7 @@ export const messages = {
   },
   nav: {
     matriculas: 'Matrículas',
+    koi: 'KOI',
   },
   userMenu: {
     logout: 'Sair',
@@ -40,6 +41,44 @@ export const messages = {
     statusActive: 'Ativa',
     statusInactive: 'Inativa',
     view: 'Ver detalhes',
+  },
+  koi: {
+    title: 'KOI — Restaurante',
+    subtitle:
+      'Cardápio, custos e margens por fornada. Os valores espelham o jogo e são editáveis — mudou lá, ajuste aqui.',
+    highlight: (name: string, profit: string) =>
+      `Coletando os ingredientes, o prato mais lucrativo é ${name}: ${profit} de lucro por fornada no totem.`,
+    tabs: {
+      margins: 'Margens',
+      prices: 'Preços',
+    },
+    margins: {
+      product: 'Prato',
+      buying: 'Comprando tudo',
+      collecting: 'Coletando',
+      street: 'Preço de rua',
+      streetProfit: 'Lucro na rua',
+      batchNote: (batchYield: number, totem: string) => `fornada de ${batchYield} · totem ${totem}`,
+      cost: 'custo',
+      profit: 'lucro',
+      buyingShort: 'comprando',
+      collectingShort: 'coletando',
+      save: 'Salvar preço de rua',
+      invalidPrice: '—',
+    },
+    prices: {
+      productsTitle: 'Pratos',
+      ingredientsTitle: 'Ingredientes',
+      name: 'Nome',
+      totemPrice: 'Preço no totem',
+      streetPrice: 'Preço de rua',
+      buyPrice: 'Preço de compra',
+      collectible: 'Coletável',
+      collectCost: 'Custo ao coletar',
+      note: 'Observação',
+      save: 'Salvar',
+      invalid: 'Use números inteiros maiores ou iguais a zero.',
+    },
   },
   detail: {
     back: 'Voltar para a lista',

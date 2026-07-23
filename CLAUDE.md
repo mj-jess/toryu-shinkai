@@ -39,7 +39,9 @@ What v1 contains:
 
 **Local dev of the dashboard works** (fixed 2026-07-22): `web/.env.local` has the dev app's Client Secret and the localhost redirect is registered on the dev Discord app. Visual identity shipped the same day: dragon-logo palette (azure light / navy dark, gold secondary), Zen Kaku Gothic New (headings) + Inter (body) via next/font, dragon favicon (`web/src/app/icon.png`) and login logo (`web/public/logo.png` — cut out from Jess's art with a flood-fill white-removal script).
 
-**Not yet done / next candidates**: Renovações page, audit history page (needs the `audit_events` table), allowlist management UI, more family-admin features as Jess requests them.
+**KOI restaurant module — Fase 1 (2026-07-23)**: the family also runs the KOI restaurant in the RP (see the `koi-restaurant-feature` memory for the full in-game data). Shipped: `koi_products`/`koi_ingredients`/`koi_recipe_items` tables (migration `0001` DDL + `0002` seed with the in-game catalog, `ON CONFLICT DO NOTHING` so edits survive re-runs), pure pricing module `src/koi/pricing.ts` (+ PGlite tests validating the seed against hand-checked numbers), and the dashboard **KOI** page: margins table (buying vs collecting scenarios), street-price simulator with per-row save, and a Preços tab editing product/ingredient prices (first write feature of the web — server actions in `web/src/app/(dashboard)/koi/actions.ts`, each one calls `requireUser()`). Fase 2 (deferred, opt-in): Discord street-sale shift summary + weekly bot post.
+
+**Not yet done / next candidates**: KOI Fase 2, Renovações page, audit history page (needs the `audit_events` table), allowlist management UI, more family-admin features as Jess requests them.
 
 ## Production hosting (since 2026-07-22)
 
@@ -93,16 +95,18 @@ Then: `npm install` → `npm run dev` (local dev bot). Production runs on the VM
   - `add-modal.ts`, `edit-modal.ts` (edit is pre-filled, opened from the record card — Discord cannot chain modal→modal, but component→modal works)
   - `audit-log.ts` (`AuditLog` interface + embed builder + `EnrollmentAuditLog`, which posts to the channel registered via `/academia-log-setup`)
   - `repository.ts` (queries), `format.ts` (phone/date helpers), `display.ts` (shared embed pieces), `ids.ts` (custom ID build/parse), `types.ts`
+- `src/koi/` — KOI restaurant module: `types.ts`, `pricing.ts` (pure margin math, shared with the web), `catalog.ts` (loads products+recipes; bot/test side only — see import rule below).
+- `src/db/migrate.ts` — applies migrations without booting the bot (`npm run db:migrate:dev`). Production migrates on bot boot (VM restart).
 - New features follow the same shape: one directory per feature, strings in `messages.ts`, repository pattern for DB access, custom IDs namespaced via an `ids.ts`.
 
 ### Dashboard (`web/` — npm workspace)
 
 - `web/src/messages.ts` — every Portuguese string of the dashboard (same rule as the bot).
 - `web/src/auth.ts` — Auth.js config (Discord provider + `ALLOWED_DISCORD_IDS` allowlist in the `signIn` callback); `web/src/session.ts` — `requireUser()` guard called in the dashboard layout and every page.
-- `web/src/db.ts` — read-only queries over `drizzle-orm/neon-http`; imports the schema via `@bot/db/schema`.
+- `web/src/db.ts` — queries over `drizzle-orm/neon-http` (enrollments read-only; KOI catalog read + price updates); imports the schema via `@bot/db/schema`. `getKoiCatalog` mirrors `src/koi/catalog.ts` on purpose (see import rule).
 - `web/src/app/` — App Router: `login/`, `(dashboard)/matriculas` (grid) and `(dashboard)/matriculas/[passport]` (detail); `actions.ts` holds the `signIn`/`signOut` server actions.
 - `web/src/components/` — client components (`dashboard-shell` with navbar/sidebar/footer, `enrollments-table` DataGrid, `color-mode-toggle`, `button-link`).
-- Import rule: `@bot/*` may only pull **pure** bot modules (schema, types, format, messages) — never anything that imports `discord.js` or `pg`.
+- Import rule: `@bot/*` may only pull **pure** bot modules (schema, types, format, messages, koi/pricing) — never anything that imports `discord.js` or `pg`, and never a module with a **runtime** relative `.js` import (Turbopack won't resolve it back to `.ts`; type-only imports are fine because they're erased). Modules that break the rule get a small mirror in `web/src` instead.
 - Server components must not pass functions (e.g. `component={Link}`) to client components — wrap the pairing in a client component like `button-link.tsx`.
 - **TypeScript nuance**: the repo root has `typescript@7` (native compiler) which the bot uses, but Next needs the classic TS JS API, so `web/` pins `typescript@^5.9` as its own devDependency (nested in `web/node_modules`).
 

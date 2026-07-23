@@ -12,6 +12,7 @@
     "deploy": "tsx --env-file=.env src/deploy-commands.ts",
     "deploy:dev": "tsx --env-file=.env.local src/deploy-commands.ts",
     "db:generate": "drizzle-kit generate",
+    "db:migrate:dev": "tsx --env-file=.env.local src/db/migrate.ts",
     "seed:dev": "tsx --env-file=.env.local src/seed-dev.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

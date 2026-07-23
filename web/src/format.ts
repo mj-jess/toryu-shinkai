@@ -6,3 +6,8 @@ export function formatTimestampBR(timestamp: string): string {
   if (!date || !time) return timestamp;
   return `${formatDateBR(date)} às ${time.slice(0, 5)}`;
 }
+
+/** Formats whole R$ amounts with pt-BR thousand separators (R$ 5.225). */
+export function formatMoney(value: number): string {
+  return `R$ ${value.toLocaleString('pt-BR')}`;
+}
