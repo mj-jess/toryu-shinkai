@@ -34,6 +34,8 @@ export async function saveProduct(
 
 export interface SaleResult {
   ok: boolean;
+  /** True when the session predates the Discord id claim — sign in again. */
+  needsLogin?: boolean;
   /** Filled on success so the page can show what was registered. */
   units?: number;
   revenue?: number;
@@ -49,6 +51,9 @@ export async function registerSale(
   quantities: { productId: number; quantity: number }[],
 ): Promise<SaleResult> {
   const user = await requireUser();
+  // Without the seller id the shift would not merge with the same member's
+  // other registrations in the rankings — refuse instead of storing it.
+  if (!user.discordId) return { ok: false, needsLogin: true };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(soldAt)) return { ok: false };
 
   const clean = quantities.filter(

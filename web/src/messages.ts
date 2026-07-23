@@ -107,6 +107,8 @@ export const messages = {
       registered: (units: number, revenue: string, profit: string) =>
         `✅ ${units} ${units === 1 ? 'item' : 'itens'} · ${revenue} · lucro estimado ${profit}`,
       invalid: 'Informe uma data válida e a quantidade de pelo menos um prato.',
+      needsLogin:
+        'Sua sessão é antiga e não identifica o seu Discord. Saia e entre novamente para registrar vendas.',
       periodTitle: 'Resumo do período',
       period7: 'Últimos 7 dias',
       period30: 'Últimos 30 dias',

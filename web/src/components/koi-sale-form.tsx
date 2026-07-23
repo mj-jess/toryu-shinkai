@@ -26,7 +26,7 @@ export function KoiSaleForm({ products, today }: { products: KoiProduct[]; today
   const router = useRouter();
   const [soldAt, setSoldAt] = useState(today);
   const [inputs, setInputs] = useState<Record<number, string>>({});
-  const [failed, setFailed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [saving, startTransition] = useTransition();
 
   const parsed = products.map((product) => ({
@@ -38,7 +38,7 @@ export function KoiSaleForm({ products, today }: { products: KoiProduct[]; today
   const valid = !anyInvalid && total > 0 && soldAt !== '';
 
   const handleRegister = () => {
-    setFailed(false);
+    setError(null);
     startTransition(async () => {
       const result = await registerSale(
         soldAt,
@@ -50,14 +50,14 @@ export function KoiSaleForm({ products, today }: { products: KoiProduct[]; today
         router.push(SALES_TAB);
         router.refresh();
       } else {
-        setFailed(true);
+        setError(result.needsLogin ? text.needsLogin : text.invalid);
       }
     });
   };
 
   return (
     <Stack spacing={3}>
-      {failed ? <Alert severity="error">{text.invalid}</Alert> : null}
+      {error ? <Alert severity="error">{error}</Alert> : null}
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 4, md: 3 }}>
