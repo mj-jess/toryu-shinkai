@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getKoiCatalog, updateKoiIngredientPricing, updateKoiProductPrices } from '@/db';
+import { updateKoiIngredient, updateKoiProduct } from '@/db';
 import { requireUser } from '@/session';
 
 export interface SaveResult {
@@ -12,41 +12,47 @@ function isPrice(value: number): boolean {
   return Number.isInteger(value) && value >= 0;
 }
 
-export async function saveProductPrices(
+export async function saveProduct(
   id: number,
-  totemPrice: number,
-  streetPrice: number,
+  values: { name: string; totemPrice: number; streetPrice: number },
 ): Promise<SaveResult> {
   await requireUser();
-  if (!Number.isInteger(id) || !isPrice(totemPrice) || !isPrice(streetPrice)) {
+  const name = values.name.trim();
+  if (
+    !Number.isInteger(id) ||
+    !name ||
+    !isPrice(values.totemPrice) ||
+    !isPrice(values.streetPrice)
+  ) {
     return { ok: false };
   }
-  await updateKoiProductPrices(id, totemPrice, streetPrice);
+  await updateKoiProduct(id, { ...values, name });
   revalidatePath('/koi');
   return { ok: true };
 }
 
-export async function saveStreetPrice(id: number, streetPrice: number): Promise<SaveResult> {
-  await requireUser();
-  if (!Number.isInteger(id) || !isPrice(streetPrice)) return { ok: false };
-  const product = (await getKoiCatalog()).find((candidate) => candidate.id === id);
-  if (!product) return { ok: false };
-  await updateKoiProductPrices(id, product.totemPrice, streetPrice);
-  revalidatePath('/koi');
-  return { ok: true };
-}
-
-export async function saveIngredientPricing(
+export async function saveIngredient(
   id: number,
-  buyPrice: number,
-  collectible: boolean,
-  collectCost: number,
+  values: {
+    name: string;
+    buyPrice: number;
+    collectible: boolean;
+    collectCost: number;
+    note: string;
+  },
 ): Promise<SaveResult> {
   await requireUser();
-  if (!Number.isInteger(id) || !isPrice(buyPrice) || !isPrice(collectCost)) {
+  const name = values.name.trim();
+  if (!Number.isInteger(id) || !name || !isPrice(values.buyPrice) || !isPrice(values.collectCost)) {
     return { ok: false };
   }
-  await updateKoiIngredientPricing(id, { buyPrice, collectible, collectCost });
+  await updateKoiIngredient(id, {
+    name,
+    buyPrice: values.buyPrice,
+    collectible: values.collectible,
+    collectCost: values.collectible ? values.collectCost : 0,
+    note: values.note.trim() || null,
+  });
   revalidatePath('/koi');
   return { ok: true };
 }
