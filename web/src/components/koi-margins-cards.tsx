@@ -6,6 +6,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
@@ -21,7 +22,7 @@ import { useState } from 'react';
 import { batchProfit, marginPercent, productEconomics } from '@bot/koi/pricing';
 import type { KoiProductWithRecipe } from '@bot/koi/types';
 import { formatMoney } from '@/format';
-import { productEmoji } from '@/koi-icons';
+import { ingredientEmoji, productEmoji } from '@/koi-icons';
 import { messages } from '@/messages';
 
 const text = messages.koi.margins;
@@ -100,6 +101,28 @@ export function KoiMarginsCards({ products }: { products: KoiProductWithRecipe[]
                   <Typography variant="caption" color="text.secondary">
                     {text.batchHeader(product.batchYield, formatMoney(product.totemPrice))}
                   </Typography>
+
+                  <Divider sx={{ my: 1.5 }} />
+                  <Typography variant="overline" color="text.secondary">
+                    {text.recipe}
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 0.75,
+                      mt: 0.5,
+                    }}
+                  >
+                    {product.recipe.map((line) => (
+                      <Chip
+                        key={line.ingredient.id}
+                        size="small"
+                        variant="outlined"
+                        label={`${ingredientEmoji(line.ingredient.name)} ${line.ingredient.name} ×${line.quantity}`}
+                      />
+                    ))}
+                  </Box>
 
                   <Table size="small" sx={{ mt: 1.5 }}>
                     <TableHead>

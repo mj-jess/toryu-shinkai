@@ -140,6 +140,7 @@ export const messages = {
       edit: 'Editar prato',
       batchHeader: (batchYield: number, totem: string) =>
         `totem ${totem} · fornada de ${batchYield} un`,
+      recipe: 'Receita da fornada',
       costLabel: 'Custo por fornada',
       profitLabel: 'Lucro por fornada',
       streetResult: 'Lucro vendendo na rua a esse preço:',
