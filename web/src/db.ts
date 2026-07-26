@@ -12,6 +12,7 @@ import {
 import type { Enrollment } from '@bot/enrollment/types';
 import { itemsCost, itemsRevenue } from '@bot/koi/sales-summary';
 import type {
+  KoiCategory,
   KoiIngredient,
   KoiProduct,
   KoiProductWithRecipe,
@@ -87,7 +88,7 @@ export async function findKoiIngredient(id: number): Promise<KoiIngredient | und
 
 export async function updateKoiProduct(
   id: number,
-  values: { name: string; totemPrice: number; streetPrice: number },
+  values: { name: string; category: KoiCategory; totemPrice: number; streetPrice: number },
 ): Promise<void> {
   await getDb().update(koiProducts).set(values).where(eq(koiProducts.id, id));
 }
@@ -103,6 +104,21 @@ export async function updateKoiIngredient(
   },
 ): Promise<void> {
   await getDb().update(koiIngredients).set(values).where(eq(koiIngredients.id, id));
+}
+
+/** Sets the current on-hand quantity for each ingredient (Estoque tab). */
+export async function updateKoiStock(
+  entries: { id: number; stockQuantity: number }[],
+): Promise<void> {
+  const db = getDb();
+  await Promise.all(
+    entries.map((entry) =>
+      db
+        .update(koiIngredients)
+        .set({ stockQuantity: entry.stockQuantity })
+        .where(eq(koiIngredients.id, entry.id)),
+    ),
+  );
 }
 
 /** Mirrors KoiSalesRepository.insert — the bot and the dashboard write alike. */

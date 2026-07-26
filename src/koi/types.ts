@@ -7,12 +7,18 @@ export interface KoiIngredient {
   collectible: boolean;
   /** Cost per unit even when collected (e.g. milk needs an empty bottle). */
   collectCost: number;
+  /** Current quantity on hand — managed in the dashboard Estoque tab. */
+  stockQuantity: number;
   note: string | null;
 }
+
+export type KoiCategory = 'food' | 'drink';
 
 export interface KoiProduct {
   id: number;
   name: string;
+  /** Whether it is a dish or a drink — groups the collection planner. */
+  category: KoiCategory;
   /** Units produced per production run. */
   batchYield: number;
   /** Totem price per unit, in whole in-game currency. */

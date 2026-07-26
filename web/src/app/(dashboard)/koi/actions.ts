@@ -2,7 +2,14 @@
 
 import { revalidatePath } from 'next/cache';
 import { priceSaleItems } from '@bot/koi/pricing';
-import { getKoiCatalog, insertKoiSale, updateKoiIngredient, updateKoiProduct } from '@/db';
+import type { KoiCategory } from '@bot/koi/types';
+import {
+  getKoiCatalog,
+  insertKoiSale,
+  updateKoiIngredient,
+  updateKoiProduct,
+  updateKoiStock,
+} from '@/db';
 import { requireUser } from '@/session';
 
 export interface SaveResult {
@@ -15,13 +22,14 @@ function isPrice(value: number): boolean {
 
 export async function saveProduct(
   id: number,
-  values: { name: string; totemPrice: number; streetPrice: number },
+  values: { name: string; category: KoiCategory; totemPrice: number; streetPrice: number },
 ): Promise<SaveResult> {
   await requireUser();
   const name = values.name.trim();
   if (
     !Number.isInteger(id) ||
     !name ||
+    (values.category !== 'food' && values.category !== 'drink') ||
     !isPrice(values.totemPrice) ||
     !isPrice(values.streetPrice)
   ) {
@@ -82,6 +90,23 @@ export async function registerSale(
     revenue,
     profit: revenue - cost,
   };
+}
+
+/** Bulk-updates the on-hand stock quantities from the Estoque tab. */
+export async function saveStock(
+  entries: { id: number; stockQuantity: number }[],
+): Promise<SaveResult> {
+  await requireUser();
+  const valid = entries.every(
+    (entry) =>
+      Number.isInteger(entry.id) &&
+      Number.isInteger(entry.stockQuantity) &&
+      entry.stockQuantity >= 0,
+  );
+  if (!valid) return { ok: false };
+  await updateKoiStock(entries);
+  revalidatePath('/koi');
+  return { ok: true };
 }
 
 export async function saveIngredient(

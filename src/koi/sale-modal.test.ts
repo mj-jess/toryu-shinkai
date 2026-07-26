@@ -5,7 +5,7 @@ import { buildSaleModal, parseModalProductIds, parseSaleModal } from './sale-mod
 import type { KoiProduct } from './types.js';
 
 function product(id: number, name: string): KoiProduct {
-  return { id, name, batchYield: 10, totemPrice: 500, streetPrice: 500 };
+  return { id, name, category: 'food', batchYield: 10, totemPrice: 500, streetPrice: 500 };
 }
 
 /** Minimal stand-in for a modal submission carrying the given field values. */

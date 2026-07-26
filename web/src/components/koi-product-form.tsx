@@ -3,11 +3,12 @@
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
+import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import type { KoiProduct } from '@bot/koi/types';
+import type { KoiCategory, KoiProduct } from '@bot/koi/types';
 import { saveProduct } from '@/app/(dashboard)/koi/actions';
 import { messages } from '@/messages';
 
@@ -21,6 +22,7 @@ function parsePrice(value: string): number | null {
 export function KoiProductForm({ product }: { product: KoiProduct }) {
   const router = useRouter();
   const [name, setName] = useState(product.name);
+  const [category, setCategory] = useState<KoiCategory>(product.category);
   const [totem, setTotem] = useState(String(product.totemPrice));
   const [street, setStreet] = useState(String(product.streetPrice));
   const [failed, setFailed] = useState(false);
@@ -34,7 +36,7 @@ export function KoiProductForm({ product }: { product: KoiProduct }) {
     if (totemPrice === null || streetPrice === null) return;
     setFailed(false);
     startTransition(async () => {
-      const result = await saveProduct(product.id, { name, totemPrice, streetPrice });
+      const result = await saveProduct(product.id, { name, category, totemPrice, streetPrice });
       if (result.ok) {
         router.push('/koi');
         router.refresh();
@@ -57,7 +59,19 @@ export function KoiProductForm({ product }: { product: KoiProduct }) {
             onChange={(event) => setName(event.target.value)}
           />
         </Grid>
-        <Grid size={{ xs: 6, sm: 3 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <TextField
+            select
+            fullWidth
+            label={text.category}
+            value={category}
+            onChange={(event) => setCategory(event.target.value as KoiCategory)}
+          >
+            <MenuItem value="food">{text.categoryFood}</MenuItem>
+            <MenuItem value="drink">{text.categoryDrink}</MenuItem>
+          </TextField>
+        </Grid>
+        <Grid size={{ xs: 6, sm: 6 }}>
           <TextField
             fullWidth
             label={text.totemPrice}
@@ -67,7 +81,7 @@ export function KoiProductForm({ product }: { product: KoiProduct }) {
             slotProps={{ htmlInput: { inputMode: 'numeric' } }}
           />
         </Grid>
-        <Grid size={{ xs: 6, sm: 3 }}>
+        <Grid size={{ xs: 6, sm: 6 }}>
           <TextField
             fullWidth
             label={text.streetPrice}

@@ -12,6 +12,7 @@ function line(overrides: Partial<KoiRecipeLine['ingredient']>, quantity: number)
       buyPrice: 100,
       collectible: false,
       collectCost: 0,
+      stockQuantity: 0,
       note: null,
       ...overrides,
     },

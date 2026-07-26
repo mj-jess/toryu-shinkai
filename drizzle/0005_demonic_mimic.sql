@@ -1,0 +1,2 @@
+ALTER TABLE "koi_products" ADD COLUMN "category" text DEFAULT 'food' NOT NULL;--> statement-breakpoint
+ALTER TABLE "koi_products" ADD CONSTRAINT "koi_products_category_check" CHECK ("koi_products"."category" IN ('food', 'drink'));

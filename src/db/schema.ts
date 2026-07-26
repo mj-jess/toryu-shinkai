@@ -49,19 +49,29 @@ export const koiIngredients = pgTable('koi_ingredients', {
   collectible: boolean('collectible').notNull().default(false),
   /** Cost per unit even when collected (e.g. milk needs an empty bottle). */
   collectCost: integer('collect_cost').notNull().default(0),
+  /** Current quantity on hand — set from the dashboard Estoque tab. */
+  stockQuantity: integer('stock_quantity').notNull().default(0),
   note: text('note'),
 });
 
-export const koiProducts = pgTable('koi_products', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull().unique(),
-  /** Units produced per production run. */
-  batchYield: integer('batch_yield').notNull().default(10),
-  /** Totem (vending point) price per unit. */
-  totemPrice: integer('totem_price').notNull(),
-  /** Street price per unit — free-form and expected to change often. */
-  streetPrice: integer('street_price').notNull(),
-});
+export const koiProducts = pgTable(
+  'koi_products',
+  {
+    id: serial('id').primaryKey(),
+    name: text('name').notNull().unique(),
+    /** Whether it is a dish or a drink — used to group the planner. */
+    category: text('category', { enum: ['food', 'drink'] })
+      .notNull()
+      .default('food'),
+    /** Units produced per production run. */
+    batchYield: integer('batch_yield').notNull().default(10),
+    /** Totem (vending point) price per unit. */
+    totemPrice: integer('totem_price').notNull(),
+    /** Street price per unit — free-form and expected to change often. */
+    streetPrice: integer('street_price').notNull(),
+  },
+  (table) => [check('koi_products_category_check', sql`${table.category} IN ('food', 'drink')`)],
+);
 
 /**
  * One street-sale shift, registered from Discord: what a member sold and how
