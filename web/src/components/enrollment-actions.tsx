@@ -22,7 +22,7 @@ import {
   reactivateEnrollment,
   renewEnrollment,
   type EnrollmentResult,
-} from '@/app/(dashboard)/matriculas/actions';
+} from '@/app/(dashboard)/academia/actions';
 import { messages } from '@/messages';
 
 const text = messages.enrollmentActions;
@@ -57,7 +57,7 @@ export function EnrollmentActions({ enrollment }: { enrollment: Enrollment }) {
       <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'wrap', rowGap: 1.5 }}>
         <Button
           component={Link}
-          href={`/matriculas/${encodeURIComponent(enrollment.passport)}/editar`}
+          href={`/academia/${encodeURIComponent(enrollment.passport)}/editar`}
           variant="outlined"
           startIcon={<EditIcon />}
           disabled={pending}

@@ -47,7 +47,7 @@ export default async function EnrollmentDetailPage({
   return (
     <Box>
       <PageBreadcrumbs
-        items={[{ label: messages.nav.matriculas, href: '/matriculas' }, { label: header }]}
+        items={[{ label: messages.nav.academia, href: '/academia' }, { label: header }]}
       />
       <EntityCard
         title={header}

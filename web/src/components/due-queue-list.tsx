@@ -34,10 +34,7 @@ export function DueQueueList({ entries }: { entries: DueEntry[] }) {
     <List disablePadding>
       {entries.map((entry) => (
         <ListItem key={entry.passport} disablePadding>
-          <ListItemButton
-            component={Link}
-            href={`/matriculas/${encodeURIComponent(entry.passport)}`}
-          >
+          <ListItemButton component={Link} href={`/academia/${encodeURIComponent(entry.passport)}`}>
             <ListItemText
               primary={`${entry.passport} | ${entry.name}`}
               secondary={text.dueDays(entry.days)}

@@ -15,7 +15,7 @@ import {
   registerEnrollment,
   saveEnrollment,
   type EnrollmentResult,
-} from '@/app/(dashboard)/matriculas/actions';
+} from '@/app/(dashboard)/academia/actions';
 import { messages } from '@/messages';
 
 const text = messages.enrollmentForm;
@@ -78,7 +78,7 @@ export function EnrollmentForm({ enrollment, today }: { enrollment?: Enrollment;
         ? await saveEnrollment(enrollment.passport, { passport, name, phone, gym, enrolledAt })
         : await registerEnrollment({ passport, name, phone, gym, enrolledAt });
       if (result.ok) {
-        router.push(`/matriculas/${encodeURIComponent(result.passport ?? passport)}`);
+        router.push(`/academia/${encodeURIComponent(result.passport ?? passport)}`);
         router.refresh();
       } else {
         setError(errorMessage(result));

@@ -46,7 +46,7 @@ const columns: GridColDef<Enrollment>[] = [
       <Tooltip title={view}>
         <IconButton
           component={Link}
-          href={`/matriculas/${encodeURIComponent(params.row.passport)}`}
+          href={`/academia/${encodeURIComponent(params.row.passport)}`}
           size="small"
           aria-label={view}
         >

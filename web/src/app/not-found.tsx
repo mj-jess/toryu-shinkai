@@ -19,7 +19,7 @@ export default function NotFound() {
       <Typography variant="h5" component="h1">
         {messages.notFound.title}
       </Typography>
-      <ButtonLink href="/matriculas" variant="contained">
+      <ButtonLink href="/academia" variant="contained">
         {messages.notFound.back}
       </ButtonLink>
     </Box>

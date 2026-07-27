@@ -14,7 +14,7 @@ export const messages = {
   },
   nav: {
     inicio: 'Visão geral',
-    matriculas: 'Matrículas',
+    academia: 'Academia',
     koi: 'KOI',
     auditoria: 'Auditoria',
   },
@@ -32,7 +32,7 @@ export const messages = {
       dueQueue: 'Fila de renovação',
       dueEmpty: 'Nenhuma matrícula vencida no momento. 🎉',
       dueDays: (days: number) => (days === 1 ? 'há 1 dia' : `há ${days} dias`),
-      seeAll: 'Ver todas as matrículas',
+      seeAll: 'Ver renovações',
     },
     koi: {
       section: 'Restaurante KOI',
@@ -68,7 +68,15 @@ export const messages = {
   },
   notFound: {
     title: 'Página não encontrada',
-    back: 'Voltar para as matrículas',
+    back: 'Voltar para a academia',
+  },
+  academia: {
+    title: 'Academia',
+    subtitle: 'Gerencie as matrículas e acompanhe as renovações.',
+    tabs: {
+      list: 'Matrículas',
+      renewals: 'Renovações',
+    },
   },
   enrollments: {
     title: 'Matrículas',
@@ -126,6 +134,30 @@ export const messages = {
     deactivated: 'Matrícula inativada. O registro não foi apagado.',
     reactivated: 'Matrícula reativada.',
     failed: 'Não foi possível concluir a ação. Tente novamente.',
+  },
+  renewals: {
+    subtitle: (total: number) =>
+      total === 1 ? '1 matrícula vencida' : `${total} matrículas vencidas`,
+    period: 'Período',
+    period2w: '2 semanas',
+    period1m: '1 mês',
+    note: (label: string) =>
+      `Matrículas ativas com mais de ${label} desde a última renovação, mais atrasadas primeiro.`,
+    columns: {
+      passport: 'Passaporte',
+      name: 'Nome',
+      phone: 'Telefone',
+      gym: 'Academia',
+      enrolledAt: 'Matriculado em',
+      overdue: 'Vencida há',
+      actions: 'Ações',
+    },
+    overdueDays: (days: number) => (days === 1 ? 'há 1 dia' : `há ${days} dias`),
+    view: 'Ver detalhes',
+    renew: 'Renovar',
+    renewed: 'Matrícula renovada — data atualizada para hoje.',
+    failed: 'Não foi possível renovar. Tente novamente.',
+    empty: 'Nenhuma matrícula vencida neste período. 🎉',
   },
   audit: {
     title: 'Auditoria',

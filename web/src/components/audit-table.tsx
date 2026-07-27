@@ -44,7 +44,7 @@ function targetHref(entity: string, entityRef: string | null): string | null {
   if (!entityRef) return null;
   switch (entity) {
     case 'enrollment':
-      return `/matriculas/${encodeURIComponent(entityRef)}`;
+      return `/academia/${encodeURIComponent(entityRef)}`;
     case 'koi_product':
       return `/koi/pratos/${entityRef}/editar`;
     case 'koi_ingredient':

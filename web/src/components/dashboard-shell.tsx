@@ -1,10 +1,10 @@
 'use client';
 
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import HistoryIcon from '@mui/icons-material/History';
 import MenuIcon from '@mui/icons-material/Menu';
 import RamenDiningIcon from '@mui/icons-material/RamenDining';
-import SchoolIcon from '@mui/icons-material/School';
 import AppBar from '@mui/material/AppBar';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
@@ -30,7 +30,7 @@ const DRAWER_WIDTH = 240;
 
 const navItems = [
   { href: '/inicio', label: messages.nav.inicio, icon: <DashboardIcon /> },
-  { href: '/matriculas', label: messages.nav.matriculas, icon: <SchoolIcon /> },
+  { href: '/academia', label: messages.nav.academia, icon: <FitnessCenterIcon /> },
   { href: '/koi', label: messages.nav.koi, icon: <RamenDiningIcon /> },
   { href: '/auditoria', label: messages.nav.auditoria, icon: <HistoryIcon /> },
 ];

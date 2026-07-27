@@ -13,10 +13,7 @@ export default async function NewEnrollmentPage() {
   return (
     <Box>
       <PageBreadcrumbs
-        items={[
-          { label: messages.nav.matriculas, href: '/matriculas' },
-          { label: text.newBreadcrumb },
-        ]}
+        items={[{ label: messages.nav.academia, href: '/academia' }, { label: text.newBreadcrumb }]}
       />
       <EntityCard title={text.newTitle} subheader={text.newHint}>
         <EnrollmentForm today={todayIsoBR()} />

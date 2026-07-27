@@ -88,7 +88,7 @@ export default async function DashboardHomePage({
           <ChartCard title={t.academia.dueQueue}>
             <DueQueueList entries={academia.dueList} />
             <Stack direction="row" sx={{ justifyContent: 'flex-end', mt: 1 }}>
-              <ButtonLink href="/matriculas" size="small">
+              <ButtonLink href="/academia?tab=renovacoes" size="small">
                 {t.academia.seeAll}
               </ButtonLink>
             </Stack>

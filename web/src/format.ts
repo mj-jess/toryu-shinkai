@@ -39,6 +39,19 @@ export function nowTimestampBR(): string {
   return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
 }
 
+/**
+ * Whole days from an ISO date (yyyy-mm-dd) until `todayIso`. Uses UTC math so
+ * the result is deterministic and DST-safe — both ends come from ISO strings,
+ * with `todayIso` produced in the family's timezone by `todayIsoBR()`.
+ */
+export function daysBetween(fromIso: string, todayIso: string): number {
+  const [fy, fm, fd] = fromIso.split('-').map(Number);
+  const [ty, tm, td] = todayIso.split('-').map(Number);
+  const from = Date.UTC(fy ?? 0, (fm ?? 1) - 1, fd ?? 1);
+  const to = Date.UTC(ty ?? 0, (tm ?? 1) - 1, td ?? 1);
+  return Math.round((to - from) / 86_400_000);
+}
+
 /** Formats whole amounts in the in-game currency ($ 5.225). */
 export function formatMoney(value: number): string {
   return `$ ${value.toLocaleString('pt-BR')}`;

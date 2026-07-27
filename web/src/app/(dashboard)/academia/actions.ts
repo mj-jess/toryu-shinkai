@@ -165,8 +165,8 @@ export async function registerEnrollment(values: EnrollmentFormValues): Promise<
   }
 
   await logEnrollment(user.name, existing ? 'reactivated' : 'created', passport, name, null);
-  revalidatePath('/matriculas');
-  revalidatePath(`/matriculas/${encodeURIComponent(passport)}`);
+  revalidatePath('/academia');
+  revalidatePath(`/academia/${encodeURIComponent(passport)}`);
   return { ok: true, passport, reactivated: Boolean(existing) };
 }
 
@@ -231,9 +231,9 @@ export async function saveEnrollment(
     enrolledAt: values.enrolledAt,
   });
   await logEnrollment(user.name, 'updated', passport, name, changes.length ? changes : null);
-  revalidatePath('/matriculas');
-  revalidatePath(`/matriculas/${encodeURIComponent(currentPassport)}`);
-  revalidatePath(`/matriculas/${encodeURIComponent(passport)}`);
+  revalidatePath('/academia');
+  revalidatePath(`/academia/${encodeURIComponent(currentPassport)}`);
+  revalidatePath(`/academia/${encodeURIComponent(passport)}`);
   return { ok: true, passport };
 }
 
@@ -248,8 +248,8 @@ export async function deactivateEnrollment(passport: string): Promise<Enrollment
     return { ok: false, error: 'failed' };
   }
   await logEnrollment(user.name, 'deactivated', existing.passport, existing.name, null);
-  revalidatePath('/matriculas');
-  revalidatePath(`/matriculas/${encodeURIComponent(passport)}`);
+  revalidatePath('/academia');
+  revalidatePath(`/academia/${encodeURIComponent(passport)}`);
   return { ok: true, passport };
 }
 
@@ -264,8 +264,8 @@ export async function reactivateEnrollment(passport: string): Promise<Enrollment
     return { ok: false, error: 'failed' };
   }
   await logEnrollment(user.name, 'reactivated', existing.passport, existing.name, null);
-  revalidatePath('/matriculas');
-  revalidatePath(`/matriculas/${encodeURIComponent(passport)}`);
+  revalidatePath('/academia');
+  revalidatePath(`/academia/${encodeURIComponent(passport)}`);
   return { ok: true, passport };
 }
 
@@ -287,7 +287,7 @@ export async function renewEnrollment(passport: string): Promise<EnrollmentResul
       after: formatDateBR(today),
     },
   ]);
-  revalidatePath('/matriculas');
-  revalidatePath(`/matriculas/${encodeURIComponent(passport)}`);
+  revalidatePath('/academia');
+  revalidatePath(`/academia/${encodeURIComponent(passport)}`);
   return { ok: true, passport };
 }

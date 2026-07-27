@@ -17,7 +17,7 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const session = await auth();
-  if (session?.user) redirect('/matriculas');
+  if (session?.user) redirect('/academia');
 
   const { error } = await searchParams;
   const errorMessage =

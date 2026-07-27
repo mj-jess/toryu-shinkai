@@ -24,8 +24,8 @@ export default async function EditEnrollmentPage({
     <Box>
       <PageBreadcrumbs
         items={[
-          { label: messages.nav.matriculas, href: '/matriculas' },
-          { label: header, href: `/matriculas/${encodeURIComponent(enrollment.passport)}` },
+          { label: messages.nav.academia, href: '/academia' },
+          { label: header, href: `/academia/${encodeURIComponent(enrollment.passport)}` },
           { label: text.editBreadcrumb },
         ]}
       />
