@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import { notFound } from 'next/navigation';
 import { daysSince, formatDateBR } from '@bot/enrollment/format';
 import { gymLabels } from '@bot/messages';
+import { EnrollmentActions } from '@/components/enrollment-actions';
 import { EntityCard } from '@/components/entity-card';
 import { PageBreadcrumbs } from '@/components/page-breadcrumbs';
 import { findEnrollment } from '@/db';
@@ -61,7 +62,7 @@ export default async function EnrollmentDetailPage({
         <Grid container spacing={2}>
           <Field label={labels.passport} value={enrollment.passport} />
           <Field label={labels.name} value={enrollment.name} />
-          <Field label={labels.phone} value={enrollment.phone} />
+          <Field label={labels.phone} value={enrollment.phone ?? '—'} />
           <Field label={labels.gym} value={gymLabels[enrollment.gym]} />
           <Field label={labels.enrolledAt} value={enrolledAt} />
           <Field label={labels.registeredBy} value={enrollment.registeredBy ?? '—'} />
@@ -80,6 +81,8 @@ export default async function EnrollmentDetailPage({
           <Field label={labels.createdAt} value={formatTimestampBR(enrollment.createdAt)} />
           <Field label={labels.updatedAt} value={formatTimestampBR(enrollment.updatedAt)} />
         </Grid>
+        <Divider sx={{ my: 2 }} />
+        <EnrollmentActions enrollment={enrollment} />
       </EntityCard>
     </Box>
   );

@@ -57,6 +57,13 @@
       "when": 1785104614170,
       "tag": "0007_careful_zeigeist",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785151194213,
+      "tag": "0008_fixed_eddie_brock",
+      "breakpoints": true
     }
   ]
 }

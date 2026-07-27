@@ -83,6 +83,48 @@ export const messages = {
     statusActive: 'Ativa',
     statusInactive: 'Inativa',
     view: 'Ver detalhes',
+    add: 'Cadastrar',
+  },
+  enrollmentForm: {
+    newTitle: 'Nova matrícula',
+    newHint: 'Preencha os dados para registrar uma matrícula.',
+    newBreadcrumb: 'Nova matrícula',
+    editTitle: 'Editar matrícula',
+    editBreadcrumb: 'Editar',
+    passport: 'Passaporte',
+    passportEditHelp: 'Corrija apenas se foi digitado errado — precisa continuar único.',
+    name: 'Nome',
+    phone: 'Telefone',
+    phoneHelp: 'Formato (999) 999-999 — pode digitar só os números.',
+    gym: 'Academia',
+    enrolledAt: 'Data da matrícula',
+    register: 'Cadastrar',
+    save: 'Salvar',
+    invalid:
+      'Confira os campos: passaporte, nome, telefone (9 dígitos), academia e data são obrigatórios.',
+    phoneInUse: (phone: string, passport: string, name: string) =>
+      `O telefone ${phone} já está cadastrado para ${passport} — ${name}.`,
+    passportInUse: (passport: string, name: string) =>
+      `O passaporte ${passport} já está em uso por ${name}.`,
+    alreadyEnrolled: (passport: string, name: string, gymLabel: string, dateBR: string) =>
+      `O passaporte ${passport} já tem matrícula ativa em nome de ${name} (${gymLabel}, desde ${dateBR}).`,
+    notFound: 'Matrícula não encontrada.',
+    failed: 'Não foi possível salvar. Tente novamente.',
+  },
+  enrollmentActions: {
+    edit: 'Editar',
+    renew: 'Renovar',
+    deactivate: 'Inativar',
+    reactivate: 'Reativar',
+    confirmTitle: 'Inativar matrícula',
+    confirmBody: (name: string) =>
+      `Tem certeza que deseja inativar a matrícula de ${name}? O registro não será apagado — poderá ser reativado depois.`,
+    confirm: 'Sim, inativar',
+    cancel: 'Cancelar',
+    renewed: 'Matrícula renovada — data atualizada para hoje.',
+    deactivated: 'Matrícula inativada. O registro não foi apagado.',
+    reactivated: 'Matrícula reativada.',
+    failed: 'Não foi possível concluir a ação. Tente novamente.',
   },
   koi: {
     title: 'KOI',

@@ -9,7 +9,8 @@ export function isGym(value: string): value is Gym {
 export interface EnrollmentInput {
   passport: string;
   name: string;
-  phone: string;
+  /** Optional: members may enroll without a phone (unique when present). */
+  phone: string | null;
   gym: Gym;
   /** ISO date (yyyy-mm-dd). */
   enrolledAt: string;
@@ -20,7 +21,8 @@ export interface Enrollment {
   id: number;
   passport: string;
   name: string;
-  phone: string;
+  /** Optional: null when the member enrolled without a phone. */
+  phone: string | null;
   gym: Gym;
   /** ISO date (yyyy-mm-dd). */
   enrolledAt: string;
@@ -36,7 +38,7 @@ export interface Enrollment {
 export interface EnrollmentUpdate {
   passport: string;
   name?: string;
-  phone?: string;
+  phone?: string | null;
   gym?: Gym;
   enrolledAt?: string;
 }

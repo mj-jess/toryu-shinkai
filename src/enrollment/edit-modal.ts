@@ -55,7 +55,7 @@ export function buildEditModal(enrollment: Enrollment): ModalBuilder {
             .setStyle(TextInputStyle.Short)
             .setRequired(true)
             .setMaxLength(15)
-            .setValue(enrollment.phone),
+            .setValue(enrollment.phone ?? ''),
         ),
       new LabelBuilder()
         .setLabel(messages.addModal.gymLabel)
@@ -134,7 +134,7 @@ export async function handleEditModalSubmit(
   }
   if (phone !== existing.phone) {
     changes.phone = phone;
-    changed.push({ label: labels.phone, before: existing.phone, after: phone });
+    changed.push({ label: labels.phone, before: existing.phone ?? '—', after: phone });
   }
   if (gym !== existing.gym) {
     changes.gym = gym;

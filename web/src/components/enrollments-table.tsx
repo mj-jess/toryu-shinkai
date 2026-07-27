@@ -67,7 +67,7 @@ export function EnrollmentsTable({ rows }: { rows: Enrollment[] }) {
         showToolbar
         disableRowSelectionOnClick
         pageSizeOptions={[10, 25, 50]}
-        initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+        initialState={{ pagination: { paginationModel: { pageSize: 50 } } }}
         sx={{ border: 0 }}
       />
     </Paper>

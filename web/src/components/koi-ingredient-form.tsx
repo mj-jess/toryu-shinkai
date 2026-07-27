@@ -8,7 +8,7 @@ import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type FormEvent } from 'react';
 import type { KoiIngredient } from '@bot/koi/types';
 import { saveIngredient } from '@/app/(dashboard)/koi/actions';
 import { INGREDIENTS_TAB } from '@/components/koi-view';
@@ -36,8 +36,9 @@ export function KoiIngredientForm({ ingredient }: { ingredient: KoiIngredient })
   const valid =
     name.trim() !== '' && buyPrice !== null && (!collectible || collectCostPrice !== null);
 
-  const handleSave = () => {
-    if (buyPrice === null) return;
+  const handleSave = (event: FormEvent) => {
+    event.preventDefault();
+    if (!valid || saving || buyPrice === null) return;
     setFailed(false);
     startTransition(async () => {
       const result = await saveIngredient(ingredient.id, {
@@ -57,7 +58,7 @@ export function KoiIngredientForm({ ingredient }: { ingredient: KoiIngredient })
   };
 
   return (
-    <Stack spacing={3}>
+    <Stack component="form" spacing={3} onSubmit={handleSave}>
       {failed ? <Alert severity="error">{text.invalid}</Alert> : null}
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6 }}>
@@ -114,7 +115,7 @@ export function KoiIngredientForm({ ingredient }: { ingredient: KoiIngredient })
         </Grid>
       </Grid>
       <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>
-        <Button variant="contained" disabled={!valid || saving} onClick={handleSave}>
+        <Button type="submit" variant="contained" disabled={!valid || saving}>
           {text.save}
         </Button>
       </Stack>

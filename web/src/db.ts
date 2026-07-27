@@ -9,7 +9,7 @@ import {
   koiSaleItems,
   koiSales,
 } from '@bot/db/schema';
-import type { Enrollment } from '@bot/enrollment/types';
+import type { Enrollment, EnrollmentInput, Gym } from '@bot/enrollment/types';
 import { itemsCost, itemsRevenue } from '@bot/koi/sales-summary';
 import type {
   KoiCategory,
@@ -19,6 +19,7 @@ import type {
   KoiSale,
   KoiSaleItem,
 } from '@bot/koi/types';
+import { nowTimestampBR } from '@/format';
 
 let db: NeonHttpDatabase | null = null;
 
@@ -43,6 +44,76 @@ export async function listEnrollments(): Promise<Enrollment[]> {
 export async function findEnrollment(passport: string): Promise<Enrollment | undefined> {
   const rows = await getDb().select().from(enrollments).where(eq(enrollments.passport, passport));
   return rows[0];
+}
+
+export async function findEnrollmentByPhone(phone: string): Promise<Enrollment | undefined> {
+  const rows = await getDb().select().from(enrollments).where(eq(enrollments.phone, phone));
+  return rows[0];
+}
+
+/** Creates a new enrollment (mirrors EnrollmentRepository.insert). */
+export async function insertEnrollment(input: EnrollmentInput): Promise<void> {
+  await getDb().insert(enrollments).values(input);
+}
+
+/** Reactivates an inactive enrollment, replacing its data with the new input. */
+export async function reactivateEnrollment(input: EnrollmentInput): Promise<void> {
+  const { passport, ...data } = input;
+  await getDb()
+    .update(enrollments)
+    .set({
+      ...data,
+      active: true,
+      deactivatedBy: null,
+      deactivatedAt: null,
+      updatedAt: nowTimestampBR(),
+    })
+    .where(eq(enrollments.passport, passport));
+}
+
+/**
+ * Updates an enrollment identified by its current passport. `fields.passport`
+ * may carry a corrected passport (kept unique by the caller and the DB).
+ */
+export async function updateEnrollmentRecord(
+  currentPassport: string,
+  fields: {
+    passport?: string;
+    name?: string;
+    phone?: string | null;
+    gym?: Gym;
+    enrolledAt?: string;
+  },
+): Promise<void> {
+  await getDb()
+    .update(enrollments)
+    .set({ ...fields, updatedAt: nowTimestampBR() })
+    .where(eq(enrollments.passport, currentPassport));
+}
+
+/** Marks an enrollment inactive, recording who did it — never deletes the row. */
+export async function deactivateEnrollment(passport: string, deactivatedBy: string): Promise<void> {
+  const timestamp = nowTimestampBR();
+  await getDb()
+    .update(enrollments)
+    .set({ active: false, deactivatedBy, deactivatedAt: timestamp, updatedAt: timestamp })
+    .where(eq(enrollments.passport, passport));
+}
+
+/** Reactivates keeping the current data (used from the record card). */
+export async function activateEnrollment(passport: string): Promise<void> {
+  await getDb()
+    .update(enrollments)
+    .set({ active: true, deactivatedBy: null, deactivatedAt: null, updatedAt: nowTimestampBR() })
+    .where(eq(enrollments.passport, passport));
+}
+
+/** Sets the enrollment date to the given ISO date (renewal). */
+export async function renewEnrollment(passport: string, enrolledAt: string): Promise<void> {
+  await getDb()
+    .update(enrollments)
+    .set({ enrolledAt, updatedAt: nowTimestampBR() })
+    .where(eq(enrollments.passport, passport));
 }
 
 /**

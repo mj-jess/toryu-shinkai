@@ -26,7 +26,7 @@ export function buildDetailView(enrollment: Enrollment, note?: string): ViewPayl
   const detail = messages.detailView;
 
   const fields: APIEmbedField[] = [
-    { name: labels.phone, value: enrollment.phone, inline: true },
+    { name: labels.phone, value: enrollment.phone ?? '—', inline: true },
     { name: labels.gym, value: gymLabels[enrollment.gym], inline: true },
     { name: labels.enrolledAt, value: formatDateBR(enrollment.enrolledAt), inline: true },
     {

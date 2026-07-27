@@ -12,7 +12,7 @@ export const enrollments = pgTable(
     id: serial('id').primaryKey(),
     passport: text('passport').notNull().unique(),
     name: text('name').notNull(),
-    phone: text('phone').notNull().unique(),
+    phone: text('phone').unique(),
     gym: text('gym', { enum: ['sandy', 'vinewood', 'both'] }).notNull(),
     enrolledAt: text('enrolled_at').notNull(),
     active: boolean('active').notNull().default(true),

@@ -13,7 +13,7 @@ export function enrollmentFields(
   return [
     { name: labels.passport, value: enrollment.passport, inline: true },
     { name: labels.name, value: enrollment.name, inline: true },
-    { name: labels.phone, value: enrollment.phone, inline: true },
+    { name: labels.phone, value: enrollment.phone ?? '—', inline: true },
     { name: labels.gym, value: gymLabels[enrollment.gym], inline: true },
     { name: labels.enrolledAt, value: formatDateBR(enrollment.enrolledAt), inline: true },
   ];
@@ -26,7 +26,7 @@ export function listEntry(enrollment: Enrollment): string {
     : messages.listView.statusInactive;
   return [
     `**${enrollment.passport} — ${enrollment.name}**`,
-    `${messages.listView.entryLine(enrollment.phone, gymLabels[enrollment.gym])} · ${status}`,
+    `${messages.listView.entryLine(enrollment.phone ?? '—', gymLabels[enrollment.gym])} · ${status}`,
   ].join('\n');
 }
 

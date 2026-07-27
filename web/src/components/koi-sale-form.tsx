@@ -6,7 +6,7 @@ import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type FormEvent } from 'react';
 import type { KoiProduct } from '@bot/koi/types';
 import { registerSale } from '@/app/(dashboard)/koi/actions';
 import { SALES_TAB } from '@/components/koi-view';
@@ -37,7 +37,9 @@ export function KoiSaleForm({ products, today }: { products: KoiProduct[]; today
   const total = parsed.reduce((sum, entry) => sum + (entry.quantity ?? 0), 0);
   const valid = !anyInvalid && total > 0 && soldAt !== '';
 
-  const handleRegister = () => {
+  const handleRegister = (event: FormEvent) => {
+    event.preventDefault();
+    if (!valid || saving) return;
     setError(null);
     startTransition(async () => {
       const result = await registerSale(
@@ -56,7 +58,7 @@ export function KoiSaleForm({ products, today }: { products: KoiProduct[]; today
   };
 
   return (
-    <Stack spacing={3}>
+    <Stack component="form" spacing={3} onSubmit={handleRegister}>
       {error ? <Alert severity="error">{error}</Alert> : null}
 
       <Grid container spacing={2}>
@@ -89,7 +91,7 @@ export function KoiSaleForm({ products, today }: { products: KoiProduct[]; today
       </Grid>
 
       <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>
-        <Button variant="contained" disabled={!valid || saving} onClick={handleRegister}>
+        <Button type="submit" variant="contained" disabled={!valid || saving}>
           {text.register}
         </Button>
       </Stack>

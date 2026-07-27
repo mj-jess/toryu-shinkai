@@ -4,17 +4,12 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type FormEvent } from 'react';
 import type { KoiIngredient } from '@bot/koi/types';
 import { saveStock } from '@/app/(dashboard)/koi/actions';
 import { ingredientEmoji } from '@/koi-icons';
@@ -48,8 +43,9 @@ export function KoiStockForm({ ingredients }: { ingredients: KoiIngredient[] }) 
   }));
   const valid = parsed.every((entry) => entry.quantity !== null);
 
-  const handleSave = () => {
-    if (!valid) return;
+  const handleSave = (event: FormEvent) => {
+    event.preventDefault();
+    if (!valid || saving) return;
     setFailed(false);
     setSaved(false);
     startTransition(async () => {
@@ -68,7 +64,7 @@ export function KoiStockForm({ ingredients }: { ingredients: KoiIngredient[] }) 
   return (
     <Card>
       <CardContent>
-        <Stack spacing={2}>
+        <Stack component="form" spacing={2} onSubmit={handleSave}>
           <div>
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
               {text.title}
@@ -81,50 +77,33 @@ export function KoiStockForm({ ingredients }: { ingredients: KoiIngredient[] }) 
           {failed ? <Alert severity="error">{text.invalid}</Alert> : null}
           {saved ? <Alert severity="success">{text.saved}</Alert> : null}
 
-          <TableContainer>
-            <Table size="small" sx={{ maxWidth: 420 }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{text.ingredient}</TableCell>
-                  <TableCell align="right">{text.quantity}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {ingredients.map((ingredient) => {
-                  const value = quantities[ingredient.id] ?? '';
-                  return (
-                    <TableRow key={ingredient.id} hover>
-                      <TableCell>
-                        {ingredientEmoji(ingredient.name)} {ingredient.name}
-                      </TableCell>
-                      <TableCell align="right">
-                        <TextField
-                          variant="standard"
-                          value={value}
-                          placeholder="0"
-                          error={parseQuantity(value) === null}
-                          onChange={(event) => {
-                            setSaved(false);
-                            setQuantities((current) => ({
-                              ...current,
-                              [ingredient.id]: event.target.value,
-                            }));
-                          }}
-                          sx={{ width: 72 }}
-                          slotProps={{
-                            htmlInput: { inputMode: 'numeric', style: { textAlign: 'right' } },
-                          }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <Grid container spacing={2}>
+            {ingredients.map((ingredient) => {
+              const value = quantities[ingredient.id] ?? '';
+              return (
+                <Grid key={ingredient.id} size={{ xs: 6, sm: 4, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    label={`${ingredientEmoji(ingredient.name)} ${ingredient.name}`}
+                    value={value}
+                    placeholder="0"
+                    error={parseQuantity(value) === null}
+                    onChange={(event) => {
+                      setSaved(false);
+                      setQuantities((current) => ({
+                        ...current,
+                        [ingredient.id]: event.target.value,
+                      }));
+                    }}
+                    slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+                  />
+                </Grid>
+              );
+            })}
+          </Grid>
 
           <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>
-            <Button variant="contained" disabled={!valid || saving} onClick={handleSave}>
+            <Button type="submit" variant="contained" disabled={!valid || saving}>
               {text.save}
             </Button>
           </Stack>

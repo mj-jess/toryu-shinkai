@@ -62,7 +62,7 @@ export function buildAuditEmbed(event: AuditEvent): EmbedBuilder {
   const display = new Map<string, string>([
     [labels.passport, enrollment.passport],
     [labels.name, enrollment.name],
-    [labels.phone, enrollment.phone],
+    [labels.phone, enrollment.phone ?? '—'],
     [labels.gym, gymLabels[enrollment.gym]],
     [labels.enrolledAt, formatDateBR(enrollment.enrolledAt)],
   ]);
