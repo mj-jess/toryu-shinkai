@@ -35,12 +35,15 @@ function changesToText(changes: AuditEventRecord['changes']): string {
 
 /** The display label for the target — enrollments show "passport | name". */
 function targetText(entity: string, entityRef: string | null, targetName: string): string {
-  return entity === 'enrollment' && entityRef ? `${entityRef} | ${targetName}` : targetName;
+  if (entity === 'enrollment' && entityRef) return `${entityRef} | ${targetName}`;
+  if (entity === 'access') return targetName || entityRef || '—';
+  return targetName;
 }
 
 /** Where clicking the target navigates — the record it acted on. */
 function targetHref(entity: string, entityRef: string | null): string | null {
   if (entity === 'koi_stock') return '/koi?tab=estoque';
+  if (entity === 'access') return '/acessos';
   if (!entityRef) return null;
   switch (entity) {
     case 'enrollment':

@@ -2,6 +2,7 @@ import { neon } from '@neondatabase/serverless';
 import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { drizzle, type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import {
+  allowedUsers,
   auditEvents,
   enrollments,
   koiIngredients,
@@ -9,6 +10,7 @@ import {
   koiRecipeItems,
   koiSaleItems,
   koiSales,
+  userProfiles,
 } from '@bot/db/schema';
 import type { AuditChangeLine, AuditEventInput, AuditEventRecord } from '@bot/audit/types';
 import type { Enrollment, EnrollmentInput, Gym } from '@bot/enrollment/types';
@@ -162,6 +164,63 @@ export async function listAuditEvents(limit = 500): Promise<AuditEventRecord[]> 
     targetName: row.targetName,
     changes: parseAuditChanges(row.changes),
   }));
+}
+
+export type AllowedUser = typeof allowedUsers.$inferSelect;
+
+/** UI-managed dashboard access list, by friendly name then insertion order. */
+export async function listAllowedUsers(): Promise<AllowedUser[]> {
+  return getDb()
+    .select()
+    .from(allowedUsers)
+    .orderBy(asc(sql`lower(${allowedUsers.label})`), asc(allowedUsers.id));
+}
+
+export async function findAllowedUser(discordId: string): Promise<AllowedUser | undefined> {
+  const rows = await getDb()
+    .select()
+    .from(allowedUsers)
+    .where(eq(allowedUsers.discordId, discordId));
+  return rows[0];
+}
+
+export async function insertAllowedUser(input: {
+  discordId: string;
+  label: string;
+  isAdmin: boolean;
+  addedBy: string;
+}): Promise<void> {
+  await getDb().insert(allowedUsers).values(input);
+}
+
+export async function removeAllowedUser(discordId: string): Promise<void> {
+  await getDb().delete(allowedUsers).where(eq(allowedUsers.discordId, discordId));
+}
+
+export async function setAllowedUserAdmin(discordId: string, isAdmin: boolean): Promise<void> {
+  await getDb().update(allowedUsers).set({ isAdmin }).where(eq(allowedUsers.discordId, discordId));
+}
+
+export async function updateAllowedUserLabel(discordId: string, label: string): Promise<void> {
+  await getDb().update(allowedUsers).set({ label }).where(eq(allowedUsers.discordId, discordId));
+}
+
+/** Discord display name captured on login — id → name, newest write wins. */
+export async function upsertUserProfile(discordId: string, name: string): Promise<void> {
+  await getDb()
+    .insert(userProfiles)
+    .values({ discordId, name, updatedAt: nowTimestampBR() })
+    .onConflictDoUpdate({
+      target: userProfiles.discordId,
+      set: { name, updatedAt: nowTimestampBR() },
+    });
+}
+
+/** Every captured profile, for mapping ids to friendly names on the Acessos page. */
+export async function listUserProfiles(): Promise<{ discordId: string; name: string }[]> {
+  return getDb()
+    .select({ discordId: userProfiles.discordId, name: userProfiles.name })
+    .from(userProfiles);
 }
 
 /**

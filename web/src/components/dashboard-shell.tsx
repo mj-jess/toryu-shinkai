@@ -1,5 +1,6 @@
 'use client';
 
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import HistoryIcon from '@mui/icons-material/History';
@@ -29,10 +30,21 @@ import { ColorModeToggle } from './color-mode-toggle';
 const DRAWER_WIDTH = 240;
 
 const navItems = [
-  { href: '/inicio', label: messages.nav.inicio, icon: <DashboardIcon /> },
-  { href: '/academia', label: messages.nav.academia, icon: <FitnessCenterIcon /> },
-  { href: '/koi', label: messages.nav.koi, icon: <RamenDiningIcon /> },
-  { href: '/auditoria', label: messages.nav.auditoria, icon: <HistoryIcon /> },
+  { href: '/inicio', label: messages.nav.inicio, icon: <DashboardIcon />, adminOnly: false },
+  {
+    href: '/academia',
+    label: messages.nav.academia,
+    icon: <FitnessCenterIcon />,
+    adminOnly: false,
+  },
+  { href: '/koi', label: messages.nav.koi, icon: <RamenDiningIcon />, adminOnly: false },
+  { href: '/auditoria', label: messages.nav.auditoria, icon: <HistoryIcon />, adminOnly: false },
+  {
+    href: '/acessos',
+    label: messages.nav.acessos,
+    icon: <AdminPanelSettingsIcon />,
+    adminOnly: true,
+  },
 ];
 
 export interface ShellUser {
@@ -42,16 +54,19 @@ export interface ShellUser {
 
 export function DashboardShell({
   user,
+  isAdmin,
   onLogout,
   children,
 }: {
   user: ShellUser;
+  isAdmin: boolean;
   onLogout: () => Promise<void>;
   children: ReactNode;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuAnchor, setUserMenuAnchor] = useState<HTMLElement | null>(null);
+  const visibleItems = navItems.filter((item) => !item.adminOnly || isAdmin);
 
   const drawer = (
     <Box>
@@ -62,7 +77,7 @@ export function DashboardShell({
       </Toolbar>
       <Divider />
       <List>
-        {navItems.map((item) => (
+        {visibleItems.map((item) => (
           <ListItem key={item.href} disablePadding>
             <ListItemButton
               component={Link}

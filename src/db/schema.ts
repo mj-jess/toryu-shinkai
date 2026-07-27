@@ -136,6 +136,40 @@ export const auditEvents = pgTable('audit_events', {
   changes: text('changes'),
 });
 
+/**
+ * Discord accounts allowed to sign in to the dashboard, managed from the UI.
+ * The env `ALLOWED_DISCORD_IDS` is the permanent core (always allowed and
+ * admin); this table is the additive layer. `isAdmin` grants the right to
+ * manage this very list.
+ */
+export const allowedUsers = pgTable('allowed_users', {
+  id: serial('id').primaryKey(),
+  discordId: text('discord_id').notNull().unique(),
+  /** Friendly name typed when granting access. */
+  label: text('label').notNull().default(''),
+  /** Whether this member can manage the access list. */
+  isAdmin: boolean('is_admin').notNull().default(false),
+  /** Human-readable name of who granted the access. */
+  addedBy: text('added_by'),
+  addedAt: text('added_at')
+    .notNull()
+    .default(sql`to_char(now(), 'YYYY-MM-DD HH24:MI:SS')`),
+});
+
+/**
+ * Discord display names captured on login, so the Acessos page can show who an
+ * id belongs to — the core lives only in the env and has no managed row.
+ * Best-effort: upserted on every sign-in, used as a fallback name when a member
+ * has no manual label yet.
+ */
+export const userProfiles = pgTable('user_profiles', {
+  discordId: text('discord_id').primaryKey(),
+  name: text('name').notNull(),
+  updatedAt: text('updated_at')
+    .notNull()
+    .default(sql`to_char(now(), 'YYYY-MM-DD HH24:MI:SS')`),
+});
+
 /** Ingredient quantities consumed by one production run of a product. */
 export const koiRecipeItems = pgTable(
   'koi_recipe_items',

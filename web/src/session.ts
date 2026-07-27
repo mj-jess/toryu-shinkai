@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { isAdminUser } from '@/access';
 import { auth } from '@/auth';
 
 export interface SessionUser {
@@ -18,4 +19,11 @@ export async function requireUser(): Promise<SessionUser> {
     image: user.image ?? null,
     discordId: user.discordId ?? '',
   };
+}
+
+/** Guards admin-only pages: signs the user in, then sends non-admins home. */
+export async function requireAdmin(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (!(await isAdminUser(user.discordId))) redirect('/inicio');
+  return user;
 }

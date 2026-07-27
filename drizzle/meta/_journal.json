@@ -71,6 +71,20 @@
       "when": 1785160389779,
       "tag": "0009_wealthy_shocker",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785164401637,
+      "tag": "0010_abnormal_meteorite",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1785166315610,
+      "tag": "0011_groovy_strong_guy",
+      "breakpoints": true
     }
   ]
 }
