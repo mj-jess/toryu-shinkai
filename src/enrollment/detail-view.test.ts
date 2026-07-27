@@ -31,11 +31,11 @@ function buttonIds(view: ReturnType<typeof buildDetailView>): string[] {
 }
 
 describe('buildDetailView', () => {
-  it('shows every value labeled, with the passport — name header', () => {
+  it('shows every value labeled, with the passport | name header', () => {
     const view = buildDetailView(buildEnrollment());
     const labels = messages.addModal.fields;
 
-    expect(view.embeds[0]?.data.title).toBe('631 — Ryoko Toryu');
+    expect(view.embeds[0]?.data.title).toBe('631 | Ryoko Toryu');
     expect(fieldValue(view, labels.phone)).toBe('(666) 123-456');
     expect(fieldValue(view, labels.gym)).toBe('As duas');
     expect(fieldValue(view, labels.enrolledAt)).toBe('22/07/2026');

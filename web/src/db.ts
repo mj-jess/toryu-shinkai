@@ -2,6 +2,7 @@ import { neon } from '@neondatabase/serverless';
 import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { drizzle, type NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import {
+  auditEvents,
   enrollments,
   koiIngredients,
   koiProducts,
@@ -9,6 +10,7 @@ import {
   koiSaleItems,
   koiSales,
 } from '@bot/db/schema';
+import type { AuditChangeLine, AuditEventInput, AuditEventRecord } from '@bot/audit/types';
 import type { Enrollment, EnrollmentInput, Gym } from '@bot/enrollment/types';
 import { itemsCost, itemsRevenue } from '@bot/koi/sales-summary';
 import type {
@@ -114,6 +116,52 @@ export async function renewEnrollment(passport: string, enrolledAt: string): Pro
     .update(enrollments)
     .set({ enrolledAt, updatedAt: nowTimestampBR() })
     .where(eq(enrollments.passport, passport));
+}
+
+/** Appends one audit event (mirrors AuditEventsRepository.insert on the bot). */
+export async function insertAuditEvent(event: AuditEventInput): Promise<void> {
+  await getDb()
+    .insert(auditEvents)
+    .values({
+      createdAt: event.createdAt,
+      actor: event.actor,
+      source: event.source,
+      entity: event.entity,
+      action: event.action,
+      entityRef: event.entityRef,
+      targetName: event.targetName,
+      changes: event.changes ? JSON.stringify(event.changes) : null,
+    });
+}
+
+function parseAuditChanges(raw: string | null): AuditChangeLine[] | null {
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as AuditChangeLine[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Audit events, newest first. Bounded — the page shows the most recent slice. */
+export async function listAuditEvents(limit = 500): Promise<AuditEventRecord[]> {
+  const rows = await getDb()
+    .select()
+    .from(auditEvents)
+    .orderBy(desc(auditEvents.createdAt), desc(auditEvents.id))
+    .limit(limit);
+  return rows.map((row) => ({
+    id: row.id,
+    createdAt: row.createdAt,
+    actor: row.actor,
+    source: row.source,
+    entity: row.entity,
+    action: row.action,
+    entityRef: row.entityRef,
+    targetName: row.targetName,
+    changes: parseAuditChanges(row.changes),
+  }));
 }
 
 /**

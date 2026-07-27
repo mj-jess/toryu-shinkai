@@ -110,6 +110,32 @@ export const koiSaleItems = pgTable('koi_sale_items', {
   unitCost: integer('unit_cost').notNull(),
 });
 
+/**
+ * Append-only audit trail of admin actions (enrollments and KOI catalog),
+ * written by both the bot and the dashboard. `changes` is a JSON array of
+ * `{ label, before, after }`; `null` for actions without field diffs.
+ */
+export const auditEvents = pgTable('audit_events', {
+  id: serial('id').primaryKey(),
+  /** yyyy-mm-dd hh:mm:ss in the family timezone. */
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`to_char(now(), 'YYYY-MM-DD HH24:MI:SS')`),
+  /** Human-readable name of who acted. */
+  actor: text('actor').notNull(),
+  source: text('source', { enum: ['bot', 'dashboard'] }).notNull(),
+  /** What was acted on: enrollment | koi_product | koi_ingredient | koi_stock. */
+  entity: text('entity').notNull(),
+  /** created | updated | deactivated | reactivated | renewed. */
+  action: text('action').notNull(),
+  /** Reference to the target: enrollment passport or KOI item id; null for stock. */
+  entityRef: text('entity_ref'),
+  /** Snapshot of the target's name at the time — composed with the ref at render. */
+  targetName: text('target_name').notNull().default(''),
+  /** JSON `[{ label, before, after }]`, or null. */
+  changes: text('changes'),
+});
+
 /** Ingredient quantities consumed by one production run of a product. */
 export const koiRecipeItems = pgTable(
   'koi_recipe_items',

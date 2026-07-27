@@ -35,9 +35,10 @@ async function sendAudit(
   action: AuditAction,
   passport: string,
   actor: string,
+  actorName: string,
 ): Promise<void> {
   const enrollment = await ctx.repository.findByPassport(passport);
-  if (enrollment) void ctx.audit.send({ action, enrollment, actor });
+  if (enrollment) void ctx.audit.send({ action, enrollment, actor, actorName });
 }
 
 function buildFilterModal(currentFilter: string): ModalBuilder {
@@ -203,12 +204,24 @@ export async function handleEnrollmentInteraction(
       }
       case 'deact-yes':
         await ctx.repository.deactivate(passport, interaction.user.tag);
-        await sendAudit(ctx, 'deactivated', passport, interaction.user.toString());
+        await sendAudit(
+          ctx,
+          'deactivated',
+          passport,
+          interaction.user.toString(),
+          interaction.user.username,
+        );
         await showDetail(interaction, ctx, passport, messages.detailView.deactivatedNote);
         return true;
       case 'react':
         await ctx.repository.activate(passport);
-        await sendAudit(ctx, 'reactivated', passport, interaction.user.toString());
+        await sendAudit(
+          ctx,
+          'reactivated',
+          passport,
+          interaction.user.toString(),
+          interaction.user.username,
+        );
         await showDetail(interaction, ctx, passport, messages.detailView.reactivatedNote);
         return true;
       case 'renew': {
@@ -229,6 +242,7 @@ export async function handleEnrollmentInteraction(
             action: 'renewed',
             enrollment: renewed,
             actor: interaction.user.toString(),
+            actorName: interaction.user.username,
             changes: [
               {
                 label: messages.addModal.fields.enrolledAt,

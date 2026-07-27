@@ -177,6 +177,7 @@ export async function handleAddModalSubmit(
         action: existing ? 'reactivated' : 'created',
         enrollment: saved,
         actor: interaction.user.toString(),
+        actorName: interaction.user.username,
       })
     : null;
 

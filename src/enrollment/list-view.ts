@@ -64,7 +64,7 @@ export async function buildListView(
       .addOptions(
         items.map((enrollment) =>
           new StringSelectMenuOptionBuilder()
-            .setLabel(`${enrollment.passport} — ${enrollment.name}`)
+            .setLabel(`${enrollment.passport} | ${enrollment.name}`)
             .setValue(enrollment.passport)
             .setEmoji(enrollment.active ? '✅' : '💤'),
         ),

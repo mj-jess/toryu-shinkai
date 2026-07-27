@@ -53,7 +53,7 @@ export const messages = {
 
     invalidPhone: '❌ Telefone inválido. Use o formato `(999) 999-999` (9 dígitos).',
     phoneInUse: (phone: string, passport: string, name: string) =>
-      `❌ O telefone **${phone}** já está cadastrado para **${passport} — ${name}**.`,
+      `❌ O telefone **${phone}** já está cadastrado para **${passport} | ${name}**.`,
     invalidDate: (todayExample: string) =>
       `❌ Data inválida. Use o formato \`dd/mm/aaaa\`, ex: \`${todayExample}\`.`,
     alreadyEnrolled: (passport: string, name: string, gymLabel: string, dateBR: string) =>
@@ -115,7 +115,7 @@ export const messages = {
   },
 
   detailView: {
-    title: (passport: string, name: string) => `${passport} — ${name}`,
+    title: (passport: string, name: string) => `${passport} | ${name}`,
     statusLabel: 'Status',
     statusActive: '✅ Ativa',
     statusInactive: '💤 Inativa',

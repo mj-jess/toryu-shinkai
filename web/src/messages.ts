@@ -16,6 +16,7 @@ export const messages = {
     inicio: 'Visão geral',
     matriculas: 'Matrículas',
     koi: 'KOI',
+    auditoria: 'Auditoria',
   },
   inicio: {
     title: 'Visão geral',
@@ -103,7 +104,7 @@ export const messages = {
     invalid:
       'Confira os campos: passaporte, nome, telefone (9 dígitos), academia e data são obrigatórios.',
     phoneInUse: (phone: string, passport: string, name: string) =>
-      `O telefone ${phone} já está cadastrado para ${passport} — ${name}.`,
+      `O telefone ${phone} já está cadastrado para ${passport} | ${name}.`,
     passportInUse: (passport: string, name: string) =>
       `O passaporte ${passport} já está em uso por ${name}.`,
     alreadyEnrolled: (passport: string, name: string, gymLabel: string, dateBR: string) =>
@@ -125,6 +126,37 @@ export const messages = {
     deactivated: 'Matrícula inativada. O registro não foi apagado.',
     reactivated: 'Matrícula reativada.',
     failed: 'Não foi possível concluir a ação. Tente novamente.',
+  },
+  audit: {
+    title: 'Auditoria',
+    subtitle: 'Histórico de ações nas matrículas e no KOI, feitas pelo bot e pelo site.',
+    empty: 'Nenhum evento registrado ainda.',
+    columns: {
+      when: 'Quando',
+      action: 'Ação',
+      target: 'Alvo',
+      actor: 'Autor',
+      source: 'Origem',
+      changes: 'Detalhes',
+    },
+    sources: {
+      bot: 'Bot',
+      dashboard: 'Site',
+    },
+    noChanges: '—',
+    actionLabel: (entity: string, action: string): string => {
+      const labels: Record<string, string> = {
+        'enrollment:created': 'Matrícula criada',
+        'enrollment:updated': 'Matrícula editada',
+        'enrollment:deactivated': 'Matrícula inativada',
+        'enrollment:reactivated': 'Matrícula reativada',
+        'enrollment:renewed': 'Matrícula renovada',
+        'koi_product:updated': 'Prato editado',
+        'koi_ingredient:updated': 'Ingrediente editado',
+        'koi_stock:updated': 'Estoque atualizado',
+      };
+      return labels[`${entity}:${action}`] ?? 'Ação';
+    },
   },
   koi: {
     title: 'KOI',

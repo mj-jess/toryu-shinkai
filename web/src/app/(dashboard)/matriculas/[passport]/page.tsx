@@ -36,7 +36,7 @@ export default async function EnrollmentDetailPage({
   if (!enrollment) notFound();
 
   const labels = messages.detail.labels;
-  const header = `${enrollment.passport} ${enrollment.name}`;
+  const header = `${enrollment.passport} | ${enrollment.name}`;
   const status = enrollment.active
     ? messages.enrollments.statusActive
     : messages.enrollments.statusInactive;

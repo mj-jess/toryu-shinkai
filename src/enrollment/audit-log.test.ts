@@ -1,5 +1,6 @@
 import type { Client } from 'discord.js';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AuditEventsRepository } from '../audit/repository.js';
 import { createTestDatabase, type TestDatabase } from '../db/test-database.js';
 import { messages } from '../messages.js';
 import { SettingsRepository } from '../settings.js';
@@ -78,10 +79,12 @@ describe('EnrollmentAuditLog', () => {
 
   let testDb: TestDatabase;
   let settings: SettingsRepository;
+  let auditRepo: AuditEventsRepository;
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
     settings = new SettingsRepository(testDb.db);
+    auditRepo = new AuditEventsRepository(testDb.db);
   });
 
   afterAll(async () => {
@@ -99,7 +102,7 @@ describe('EnrollmentAuditLog', () => {
   it('does nothing when no channel is configured', async () => {
     const fetch = vi.fn();
 
-    const url = await new EnrollmentAuditLog(fakeClient(fetch), settings).send(event);
+    const url = await new EnrollmentAuditLog(fakeClient(fetch), settings, auditRepo).send(event);
 
     expect(url).toBeNull();
     expect(fetch).not.toHaveBeenCalled();
@@ -110,7 +113,7 @@ describe('EnrollmentAuditLog', () => {
     const send = vi.fn().mockResolvedValue({ url: 'https://discord.com/channels/1/2/3' });
     const fetch = vi.fn().mockResolvedValue({ isSendable: () => true, send });
 
-    const url = await new EnrollmentAuditLog(fakeClient(fetch), settings).send(event);
+    const url = await new EnrollmentAuditLog(fakeClient(fetch), settings, auditRepo).send(event);
 
     expect(fetch).toHaveBeenCalledWith('channel-1');
     const [payload] = send.mock.calls[0] ?? [];
@@ -123,7 +126,7 @@ describe('EnrollmentAuditLog', () => {
     const send = vi.fn();
     const fetch = vi.fn().mockResolvedValue({ isSendable: () => false, send });
 
-    const url = await new EnrollmentAuditLog(fakeClient(fetch), settings).send(event);
+    const url = await new EnrollmentAuditLog(fakeClient(fetch), settings, auditRepo).send(event);
 
     expect(url).toBeNull();
     expect(send).not.toHaveBeenCalled();
@@ -135,7 +138,7 @@ describe('EnrollmentAuditLog', () => {
     const fetch = vi.fn().mockRejectedValue(new Error('boom'));
 
     await expect(
-      new EnrollmentAuditLog(fakeClient(fetch), settings).send(event),
+      new EnrollmentAuditLog(fakeClient(fetch), settings, auditRepo).send(event),
     ).resolves.toBeNull();
 
     expect(error).toHaveBeenCalled();

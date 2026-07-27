@@ -59,7 +59,7 @@ describe('buildListView', () => {
     const view = await buildListView(repository, browseState({ page: 0 }));
 
     const description = view.payload.embeds[0]?.data.description ?? '';
-    expect(description).toContain('**0 — Person 00**');
+    expect(description).toContain('**0 | Person 00**');
     expect(description).toContain('Telefone: (100) 123-456 · Academia: As duas');
     expect(view.payload.embeds[0]?.data.footer?.text).toBe(messages.listView.footer(1, 1, 3));
   });

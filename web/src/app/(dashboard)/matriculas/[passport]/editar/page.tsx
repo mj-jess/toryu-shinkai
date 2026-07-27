@@ -18,7 +18,7 @@ export default async function EditEnrollmentPage({
   if (!enrollment) notFound();
 
   const text = messages.enrollmentForm;
-  const header = `${enrollment.passport} ${enrollment.name}`;
+  const header = `${enrollment.passport} | ${enrollment.name}`;
 
   return (
     <Box>

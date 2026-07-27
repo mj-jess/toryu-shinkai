@@ -163,6 +163,7 @@ export async function handleEditModalSubmit(
       action: 'updated',
       enrollment: updated,
       actor: interaction.user.toString(),
+      actorName: interaction.user.username,
       changes: changed,
     });
   }

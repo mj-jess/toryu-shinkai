@@ -1,19 +1,23 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { formatPhoneNumber } from '@bot/enrollment/format';
-import { isGym, type EnrollmentInput, type Gym } from '@bot/enrollment/types';
+import type { AuditChangeLine } from '@bot/audit/types';
+import { formatDateBR, formatPhoneNumber } from '@bot/enrollment/format';
+import { isGym, type Enrollment, type EnrollmentInput, type Gym } from '@bot/enrollment/types';
+import { gymLabels } from '@bot/messages';
 import {
   activateEnrollment as dbActivate,
   deactivateEnrollment as dbDeactivate,
   findEnrollment,
   findEnrollmentByPhone,
+  insertAuditEvent,
   insertEnrollment,
   reactivateEnrollment as dbReactivate,
   renewEnrollment as dbRenew,
   updateEnrollmentRecord,
 } from '@/db';
-import { todayIsoBR } from '@/format';
+import { nowTimestampBR, todayIsoBR } from '@/format';
+import { messages } from '@/messages';
 import { requireUser } from '@/session';
 
 export interface EnrollmentFormValues {
@@ -52,6 +56,59 @@ function parseOptionalPhone(raw: string): { ok: true; phone: string | null } | {
   if (raw.trim() === '') return { ok: true, phone: null };
   const phone = formatPhoneNumber(raw);
   return phone ? { ok: true, phone } : { ok: false };
+}
+
+/** Records a dashboard enrollment action in the audit trail — never breaks the flow. */
+async function logEnrollment(
+  actor: string,
+  action: string,
+  passport: string,
+  name: string,
+  changes: AuditChangeLine[] | null,
+): Promise<void> {
+  try {
+    await insertAuditEvent({
+      createdAt: nowTimestampBR(),
+      actor,
+      source: 'dashboard',
+      entity: 'enrollment',
+      action,
+      entityRef: passport,
+      targetName: name,
+      changes,
+    });
+  } catch (error) {
+    console.error('Failed to record enrollment audit event:', error);
+  }
+}
+
+/** Fields that changed between the stored record and the submitted values. */
+function diffEnrollment(
+  before: Enrollment,
+  after: { passport: string; name: string; phone: string | null; gym: Gym; enrolledAt: string },
+): AuditChangeLine[] {
+  const labels = messages.enrollmentForm;
+  const changes: AuditChangeLine[] = [];
+  if (after.passport !== before.passport) {
+    changes.push({ label: labels.passport, before: before.passport, after: after.passport });
+  }
+  if (after.name !== before.name) {
+    changes.push({ label: labels.name, before: before.name, after: after.name });
+  }
+  if (after.phone !== before.phone) {
+    changes.push({ label: labels.phone, before: before.phone ?? '—', after: after.phone ?? '—' });
+  }
+  if (after.gym !== before.gym) {
+    changes.push({ label: labels.gym, before: gymLabels[before.gym], after: gymLabels[after.gym] });
+  }
+  if (after.enrolledAt !== before.enrolledAt) {
+    changes.push({
+      label: labels.enrolledAt,
+      before: formatDateBR(before.enrolledAt),
+      after: formatDateBR(after.enrolledAt),
+    });
+  }
+  return changes;
 }
 
 /** Creates a new enrollment, reactivating an inactive passport (with the new data). */
@@ -107,6 +164,7 @@ export async function registerEnrollment(values: EnrollmentFormValues): Promise<
     return { ok: false, error: 'failed' };
   }
 
+  await logEnrollment(user.name, existing ? 'reactivated' : 'created', passport, name, null);
   revalidatePath('/matriculas');
   revalidatePath(`/matriculas/${encodeURIComponent(passport)}`);
   return { ok: true, passport, reactivated: Boolean(existing) };
@@ -117,7 +175,7 @@ export async function saveEnrollment(
   currentPassport: string,
   values: EnrollmentFormValues,
 ): Promise<EnrollmentResult> {
-  await requireUser();
+  const user = await requireUser();
   const existing = await findEnrollment(currentPassport);
   if (!existing) return { ok: false, error: 'notFound' };
 
@@ -165,6 +223,14 @@ export async function saveEnrollment(
     return { ok: false, error: 'failed' };
   }
 
+  const changes = diffEnrollment(existing, {
+    passport,
+    name,
+    phone,
+    gym,
+    enrolledAt: values.enrolledAt,
+  });
+  await logEnrollment(user.name, 'updated', passport, name, changes.length ? changes : null);
   revalidatePath('/matriculas');
   revalidatePath(`/matriculas/${encodeURIComponent(currentPassport)}`);
   revalidatePath(`/matriculas/${encodeURIComponent(passport)}`);
@@ -181,6 +247,7 @@ export async function deactivateEnrollment(passport: string): Promise<Enrollment
   } catch {
     return { ok: false, error: 'failed' };
   }
+  await logEnrollment(user.name, 'deactivated', existing.passport, existing.name, null);
   revalidatePath('/matriculas');
   revalidatePath(`/matriculas/${encodeURIComponent(passport)}`);
   return { ok: true, passport };
@@ -188,7 +255,7 @@ export async function deactivateEnrollment(passport: string): Promise<Enrollment
 
 /** Reactivates an inactive enrollment, keeping its data. */
 export async function reactivateEnrollment(passport: string): Promise<EnrollmentResult> {
-  await requireUser();
+  const user = await requireUser();
   const existing = await findEnrollment(passport);
   if (!existing) return { ok: false, error: 'notFound' };
   try {
@@ -196,6 +263,7 @@ export async function reactivateEnrollment(passport: string): Promise<Enrollment
   } catch {
     return { ok: false, error: 'failed' };
   }
+  await logEnrollment(user.name, 'reactivated', existing.passport, existing.name, null);
   revalidatePath('/matriculas');
   revalidatePath(`/matriculas/${encodeURIComponent(passport)}`);
   return { ok: true, passport };
@@ -203,14 +271,22 @@ export async function reactivateEnrollment(passport: string): Promise<Enrollment
 
 /** Renews an enrollment by setting its date to today (family timezone). */
 export async function renewEnrollment(passport: string): Promise<EnrollmentResult> {
-  await requireUser();
+  const user = await requireUser();
   const existing = await findEnrollment(passport);
   if (!existing) return { ok: false, error: 'notFound' };
+  const today = todayIsoBR();
   try {
-    await dbRenew(passport, todayIsoBR());
+    await dbRenew(passport, today);
   } catch {
     return { ok: false, error: 'failed' };
   }
+  await logEnrollment(user.name, 'renewed', existing.passport, existing.name, [
+    {
+      label: messages.enrollmentForm.enrolledAt,
+      before: formatDateBR(existing.enrolledAt),
+      after: formatDateBR(today),
+    },
+  ]);
   revalidatePath('/matriculas');
   revalidatePath(`/matriculas/${encodeURIComponent(passport)}`);
   return { ok: true, passport };

@@ -1,7 +1,8 @@
 import { EmbedBuilder, type Client } from 'discord.js';
+import type { AuditEventsRepository } from '../audit/repository.js';
 import { gymLabels, messages } from '../messages.js';
 import type { SettingsRepository } from '../settings.js';
-import { formatDateBR } from './format.js';
+import { formatDateBR, nowTimestamp } from './format.js';
 import type { Enrollment } from './types.js';
 
 export const AUDIT_SETUP_COMMAND_NAME = 'academia-log-setup';
@@ -20,8 +21,10 @@ export interface AuditEvent {
   action: AuditAction;
   /** The record as it stands after the action. */
   enrollment: Enrollment;
-  /** Discord mention of the admin who performed the action. */
+  /** Discord mention of the admin who performed the action (for the embed). */
   actor: string;
+  /** Plain name of the actor for the DB history; falls back to `actor`. */
+  actorName?: string;
   /** Present on 'updated' events. */
   changes?: AuditChange[];
 }
@@ -85,10 +88,12 @@ export class EnrollmentAuditLog implements AuditLog {
   constructor(
     private readonly client: Client,
     private readonly settings: SettingsRepository,
+    private readonly auditEvents: AuditEventsRepository,
   ) {}
 
   /** Audit failures never break the enrollment flow — they only reach the console. */
   async send(event: AuditEvent): Promise<string | null> {
+    await this.persist(event);
     try {
       const channelId = await this.settings.get(AUDIT_CHANNEL_SETTING_KEY);
       if (!channelId) return null;
@@ -99,6 +104,24 @@ export class EnrollmentAuditLog implements AuditLog {
     } catch (error) {
       console.error('Failed to send enrollment audit log:', error);
       return null;
+    }
+  }
+
+  /** Records the event for the dashboard history — never breaks the flow. */
+  private async persist(event: AuditEvent): Promise<void> {
+    try {
+      await this.auditEvents.insert({
+        createdAt: nowTimestamp(),
+        actor: event.actorName ?? event.actor,
+        source: 'bot',
+        entity: 'enrollment',
+        action: event.action,
+        entityRef: event.enrollment.passport,
+        targetName: event.enrollment.name,
+        changes: event.changes ?? null,
+      });
+    } catch (error) {
+      console.error('Failed to persist enrollment audit event:', error);
     }
   }
 }

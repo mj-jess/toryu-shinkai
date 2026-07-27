@@ -22,7 +22,7 @@ const DUE_COLOR = 0xe67e22;
 
 function dueEntry(enrollment: Enrollment): string {
   return [
-    `**${enrollment.passport} — ${enrollment.name}**`,
+    `**${enrollment.passport} | ${enrollment.name}**`,
     messages.dueView.entryLine(
       formatDateBR(enrollment.enrolledAt),
       daysSince(enrollment.enrolledAt),
@@ -86,7 +86,7 @@ export async function buildDueView(
       .addOptions(
         items.map((enrollment) =>
           new StringSelectMenuOptionBuilder()
-            .setLabel(`${enrollment.passport} — ${enrollment.name}`)
+            .setLabel(`${enrollment.passport} | ${enrollment.name}`)
             .setValue(enrollment.passport)
             .setEmoji('🕒'),
         ),

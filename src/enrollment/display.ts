@@ -25,7 +25,7 @@ export function listEntry(enrollment: Enrollment): string {
     ? messages.listView.statusActive
     : messages.listView.statusInactive;
   return [
-    `**${enrollment.passport} — ${enrollment.name}**`,
+    `**${enrollment.passport} | ${enrollment.name}**`,
     `${messages.listView.entryLine(enrollment.phone ?? '—', gymLabels[enrollment.gym])} · ${status}`,
   ].join('\n');
 }

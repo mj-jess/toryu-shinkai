@@ -1,6 +1,7 @@
 'use client';
 
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import HistoryIcon from '@mui/icons-material/History';
 import MenuIcon from '@mui/icons-material/Menu';
 import RamenDiningIcon from '@mui/icons-material/RamenDining';
 import SchoolIcon from '@mui/icons-material/School';
@@ -31,6 +32,7 @@ const navItems = [
   { href: '/inicio', label: messages.nav.inicio, icon: <DashboardIcon /> },
   { href: '/matriculas', label: messages.nav.matriculas, icon: <SchoolIcon /> },
   { href: '/koi', label: messages.nav.koi, icon: <RamenDiningIcon /> },
+  { href: '/auditoria', label: messages.nav.auditoria, icon: <HistoryIcon /> },
 ];
 
 export interface ShellUser {

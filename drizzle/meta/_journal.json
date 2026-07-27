@@ -64,6 +64,13 @@
       "when": 1785151194213,
       "tag": "0008_fixed_eddie_brock",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785160389779,
+      "tag": "0009_wealthy_shocker",
+      "breakpoints": true
     }
   ]
 }

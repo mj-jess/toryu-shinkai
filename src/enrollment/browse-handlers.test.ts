@@ -79,7 +79,7 @@ describe('handleEnrollmentInteraction', () => {
 
     const payload = replyArg(interaction);
     expect(embedTitle(payload)).toBe(messages.listView.title);
-    expect(replyEmbed(payload)?.data.description).toContain('631 — Ryoko Toryu');
+    expect(replyEmbed(payload)?.data.description).toContain('631 | Ryoko Toryu');
     expect(replyEmbed(payload)?.data.description).toContain('Telefone:');
   });
 
@@ -89,7 +89,7 @@ describe('handleEnrollmentInteraction', () => {
     await handleEnrollmentInteraction(interaction, ctx);
 
     const payload = updateArg(interaction);
-    expect(embedTitle(payload)).toBe('631 — Ryoko Toryu');
+    expect(embedTitle(payload)).toBe('631 | Ryoko Toryu');
     expect(embedFieldValue(payload, messages.detailView.statusLabel)).toBe(
       messages.detailView.statusActive,
     );
@@ -190,7 +190,7 @@ describe('handleEnrollmentInteraction', () => {
 
     const payload = replyArg(interaction);
     expect(embedTitle(payload)).toBe(messages.dueView.title);
-    expect(replyEmbed(payload)?.data.description).toContain('631 — Ryoko Toryu');
+    expect(replyEmbed(payload)?.data.description).toContain('631 | Ryoko Toryu');
     expect(ctx.sessions.get('user-1')).toMatchObject({ view: 'due', period: '1m', page: 0 });
   });
 

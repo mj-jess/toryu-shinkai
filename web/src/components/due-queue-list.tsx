@@ -39,7 +39,7 @@ export function DueQueueList({ entries }: { entries: DueEntry[] }) {
             href={`/matriculas/${encodeURIComponent(entry.passport)}`}
           >
             <ListItemText
-              primary={`${entry.passport} — ${entry.name}`}
+              primary={`${entry.passport} | ${entry.name}`}
               secondary={text.dueDays(entry.days)}
             />
             <EastIcon fontSize="small" color="action" />

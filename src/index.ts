@@ -1,4 +1,5 @@
 import { Client, Events, GatewayIntentBits, MessageFlags } from 'discord.js';
+import { AuditEventsRepository } from './audit/repository.js';
 import { createDatabase } from './database.js';
 import {
   AUDIT_CHANNEL_SETTING_KEY,
@@ -32,7 +33,7 @@ const settings = new SettingsRepository(db);
 const ctx: BrowseContext = {
   repository: new EnrollmentRepository(db),
   sessions: new BrowseSessions(),
-  audit: new EnrollmentAuditLog(client, settings),
+  audit: new EnrollmentAuditLog(client, settings, new AuditEventsRepository(db)),
 };
 
 const koiSales = new KoiSalesRepository(db);
