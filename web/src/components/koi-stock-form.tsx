@@ -77,7 +77,7 @@ export function KoiStockForm({ ingredients }: { ingredients: KoiIngredient[] }) 
           {failed ? <Alert severity="error">{text.invalid}</Alert> : null}
           {saved ? <Alert severity="success">{text.saved}</Alert> : null}
 
-          <Grid container spacing={2}>
+          <Grid container spacing={2} columns={{ xs: 12, md: 15 }}>
             {ingredients.map((ingredient) => {
               const value = quantities[ingredient.id] ?? '';
               return (
