@@ -22,10 +22,12 @@ export function KoiView({
   products,
   ingredients,
   sales,
+  weeklyPostEnabled,
 }: {
   products: KoiProductWithRecipe[];
   ingredients: KoiIngredient[];
   sales: KoiSale[];
+  weeklyPostEnabled: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -50,7 +52,7 @@ export function KoiView({
       {tab === 0 ? <KoiMarginsCards products={products} /> : null}
       {tab === 1 ? <KoiIngredientsTable ingredients={ingredients} /> : null}
       {tab === 2 ? <KoiCollectPlanner products={products} /> : null}
-      {tab === 3 ? <KoiSalesView sales={sales} /> : null}
+      {tab === 3 ? <KoiSalesView sales={sales} weeklyPostEnabled={weeklyPostEnabled} /> : null}
       {tab === 4 ? <KoiStockForm ingredients={ingredients} /> : null}
     </Box>
   );

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import type { AuditChangeLine } from '@bot/audit/types';
 import { priceSaleItems } from '@bot/koi/pricing';
-import type { KoiCategory } from '@bot/koi/types';
+import { KOI_WEEKLY_POST_ENABLED_SETTING_KEY, type KoiCategory } from '@bot/koi/types';
 import {
   findKoiIngredient,
   findKoiProduct,
@@ -11,6 +11,7 @@ import {
   getKoiIngredients,
   insertAuditEvent,
   insertKoiSale,
+  setSetting,
   updateKoiIngredient,
   updateKoiProduct,
   updateKoiStock,
@@ -18,6 +19,7 @@ import {
 import { formatMoney, nowTimestampBR } from '@/format';
 import { messages } from '@/messages';
 import { requireUser } from '@/session';
+import { isStockImageType, readStockFromImage, type StockReadOutcome } from '@/stock-reader';
 
 export interface SaveResult {
   ok: boolean;
@@ -185,6 +187,49 @@ export async function saveStock(
   await logKoi(user.name, 'koi_stock', null, messages.koi.tabs.stock, changes);
   revalidatePath('/koi');
   return { ok: true };
+}
+
+/** Turns the bot's Monday street-sales summary on Discord on or off. */
+export async function setWeeklyPostEnabled(enabled: boolean): Promise<SaveResult> {
+  const user = await requireUser();
+  await setSetting(KOI_WEEKLY_POST_ENABLED_SETTING_KEY, enabled ? 'true' : 'false');
+  const text = messages.koi.sales.weeklyPost;
+  await logKoi(user.name, 'koi_settings', null, text.label, [
+    {
+      label: text.label,
+      before: enabled ? text.off : text.on,
+      after: enabled ? text.on : text.off,
+    },
+  ]);
+  revalidatePath('/koi');
+  return { ok: true };
+}
+
+/** Largest screenshot accepted (the client already downsizes before uploading). */
+const MAX_STOCK_IMAGE_BYTES = 4 * 1024 * 1024;
+
+/**
+ * Reads the stock quantities off an inventory screenshot. Nothing is saved here:
+ * the image is analysed in memory and dropped, and the quantities only fill the
+ * form — the user reviews them and saves through `saveStock` as usual.
+ */
+export async function readStockImage(formData: FormData): Promise<StockReadOutcome> {
+  await requireUser();
+  const image = formData.get('image');
+  if (
+    !(image instanceof File) ||
+    !isStockImageType(image.type) ||
+    image.size === 0 ||
+    image.size > MAX_STOCK_IMAGE_BYTES
+  ) {
+    return { ok: false, reason: 'failed' };
+  }
+  const base64 = Buffer.from(await image.arrayBuffer()).toString('base64');
+  const ingredients = await getKoiIngredients();
+  return readStockFromImage(
+    { base64, mediaType: image.type },
+    ingredients.map((ingredient) => ({ id: ingredient.id, name: ingredient.name })),
+  );
 }
 
 export async function saveIngredient(

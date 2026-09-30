@@ -45,6 +45,10 @@ What v1 contains:
 
 **Deploying Fase 2 to production** (when Jess approves): push (Vercel auto-deploys the web) → update the VM (migration applies on boot) → `npm run deploy` to register the two new slash commands. ⚠️ The weekly post uses the **process local time**, so set the VM timezone once: `sudo timedatectl set-timezone America/Sao_Paulo` (this also aligns the bot's date handling with the family's).
 
+**Neon quota incident + fixes (2026-09-30)**: the free plan's 100 CU-h/month ran out (110 used) and Neon answered HTTP 402 to prod and dev alike until the cycle reset (1st of the month 00:00 UTC = 21h Brasília the day before). Cause: the weekly-post timer queried `settings` every 10 minutes, so the compute never stayed idle long enough to scale to zero. Fixes: `runWeeklyPost` checks weekday/hour in memory before any query, and the Monday post is now behind a dashboard switch (KOI → Vendas de rua, settings key `koi.weekly_post.enabled`, **off by default**). Compute autoscaling pinned to 0.25 CU. **Rule: never add periodic work that touches the database** — decide in memory first.
+
+**KOI stock from a screenshot (2026-09-30)**: Estoque tab has "Ler print do inventário" (or Ctrl+V). The browser downsizes the image, a server action sends it to Claude (`web/src/stock-reader.ts`, structured JSON output keyed by ingredient id) and the result only fills the form — the user reviews and saves as usual. The image is never stored. Needs `ANTHROPIC_API_KEY` (Anthropic Console, pay-as-you-go — not covered by a Claude Max subscription); without it the button explains it is not configured.
+
 **Not yet done / next candidates**: Renovações page, audit history page (needs the `audit_events` table), allowlist management UI, more family-admin features as Jess requests them.
 
 ## Production hosting (since 2026-07-22)

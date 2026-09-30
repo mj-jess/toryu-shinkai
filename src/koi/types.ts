@@ -1,3 +1,9 @@
+/**
+ * Settings key for the Monday Discord summary switch (dashboard → Vendas de rua).
+ * Only the value 'true' enables it — a missing key means off.
+ */
+export const KOI_WEEKLY_POST_ENABLED_SETTING_KEY = 'koi.weekly_post.enabled';
+
 export interface KoiIngredient {
   id: number;
   name: string;

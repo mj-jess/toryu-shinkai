@@ -43,6 +43,7 @@ function targetText(entity: string, entityRef: string | null, targetName: string
 /** Where clicking the target navigates — the record it acted on. */
 function targetHref(entity: string, entityRef: string | null): string | null {
   if (entity === 'koi_stock') return '/koi?tab=estoque';
+  if (entity === 'koi_settings') return '/koi?tab=vendas';
   if (entity === 'access') return '/acessos';
   if (!entityRef) return null;
   switch (entity) {

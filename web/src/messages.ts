@@ -187,6 +187,7 @@ export const messages = {
         'koi_product:updated': 'Prato editado',
         'koi_ingredient:updated': 'Ingrediente editado',
         'koi_stock:updated': 'Estoque atualizado',
+        'koi_settings:updated': 'Configuração do KOI alterada',
         'access:granted': 'Acesso concedido',
         'access:granted_admin': 'Acesso concedido (admin)',
         'access:revoked': 'Acesso removido',
@@ -256,6 +257,22 @@ export const messages = {
       save: 'Salvar estoque',
       saved: 'Estoque atualizado.',
       invalid: 'As quantidades precisam ser números inteiros ≥ 0.',
+      readImage: 'Ler print do inventário',
+      readingImage: 'Lendo o print…',
+      pasteHint: 'Você também pode colar o print aqui com Ctrl+V. A imagem não é guardada.',
+      readResult: (found: number, missing: number) =>
+        `Li ${found} ${found === 1 ? 'ingrediente' : 'ingredientes'} no print` +
+        (missing > 0
+          ? ` — ${missing} não ${missing === 1 ? 'apareceu e ficou' : 'apareceram e ficaram'} como estava${missing === 1 ? '' : 'm'}`
+          : '') +
+        '. Confira os campos destacados e clique em Salvar estoque.',
+      readNothing: 'Não reconheci nenhum ingrediente do catálogo nesse print.',
+      readFromImage: 'Lido do print',
+      readErrors: {
+        not_configured: 'A leitura de print não está configurada (falta a ANTHROPIC_API_KEY).',
+        refused: 'Não consegui analisar essa imagem. Tente outro print.',
+        failed: 'Não consegui ler o print. Tente de novo ou com uma imagem mais nítida.',
+      },
     },
     collect: {
       title: 'Planejar coleta',
@@ -283,6 +300,13 @@ export const messages = {
     },
     sales: {
       indexTitle: 'Vendas de rua registradas',
+      weeklyPost: {
+        label: 'Resumo semanal no Discord',
+        hint: 'Toda segunda às 9h o bot posta o resumo da semana anterior no canal do painel do KOI.',
+        on: 'Ligado',
+        off: 'Desligado',
+        failed: 'Não consegui salvar. Tente de novo.',
+      },
       add: 'Registrar venda',
       breadcrumb: 'Vendas de rua',
       newBreadcrumb: 'Nova venda',

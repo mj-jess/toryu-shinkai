@@ -10,6 +10,7 @@ import {
   koiRecipeItems,
   koiSaleItems,
   koiSales,
+  settings,
   userProfiles,
 } from '@bot/db/schema';
 import type { AuditChangeLine, AuditEventInput, AuditEventRecord } from '@bot/audit/types';
@@ -228,6 +229,18 @@ export async function listUserProfiles(): Promise<{ discordId: string; name: str
  * imported here: its runtime `../db/schema.js` import is NodeNext-style,
  * which the Next bundler does not resolve back to the .ts source.
  */
+export async function getSetting(key: string): Promise<string | undefined> {
+  const [row] = await getDb().select().from(settings).where(eq(settings.key, key));
+  return row?.value;
+}
+
+export async function setSetting(key: string, value: string): Promise<void> {
+  await getDb()
+    .insert(settings)
+    .values({ key, value })
+    .onConflictDoUpdate({ target: settings.key, set: { value } });
+}
+
 export async function getKoiCatalog(): Promise<KoiProductWithRecipe[]> {
   const db = getDb();
   const [products, ingredients, recipeItems] = await Promise.all([
