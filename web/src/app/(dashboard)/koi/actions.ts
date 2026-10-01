@@ -211,12 +211,19 @@ export async function saveIngredient(
     buyPrice: number;
     collectible: boolean;
     collectCost: number;
+    minStock: number;
     note: string;
   },
 ): Promise<SaveResult> {
   const user = await requireUser();
   const name = values.name.trim();
-  if (!Number.isInteger(id) || !name || !isPrice(values.buyPrice) || !isPrice(values.collectCost)) {
+  if (
+    !Number.isInteger(id) ||
+    !name ||
+    !isPrice(values.buyPrice) ||
+    !isPrice(values.collectCost) ||
+    !isPrice(values.minStock)
+  ) {
     return { ok: false };
   }
   const collectCost = values.collectible ? values.collectCost : 0;
@@ -227,6 +234,7 @@ export async function saveIngredient(
     buyPrice: values.buyPrice,
     collectible: values.collectible,
     collectCost,
+    minStock: values.minStock,
     note,
   });
   if (before) {
@@ -252,6 +260,13 @@ export async function saveIngredient(
         label: t.collectCost,
         before: formatMoney(before.collectCost),
         after: formatMoney(collectCost),
+      });
+    }
+    if (values.minStock !== before.minStock) {
+      changes.push({
+        label: messages.koi.edit.minStock,
+        before: String(before.minStock),
+        after: String(values.minStock),
       });
     }
     if (note !== before.note) {

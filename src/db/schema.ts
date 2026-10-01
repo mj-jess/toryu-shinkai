@@ -51,6 +51,8 @@ export const koiIngredients = pgTable('koi_ingredients', {
   collectCost: integer('collect_cost').notNull().default(0),
   /** Current quantity on hand — set from the dashboard Estoque tab. */
   stockQuantity: integer('stock_quantity').notNull().default(0),
+  /** Minimum to keep on hand (0 = none) — the Estoque tab flags anything below it. */
+  minStock: integer('min_stock').notNull().default(0),
   note: text('note'),
 });
 

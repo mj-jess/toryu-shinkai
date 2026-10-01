@@ -282,6 +282,15 @@ export const messages = {
         ]
           .filter(Boolean)
           .join(' · ') + '. Revise e clique em Salvar estoque.',
+      minimum: (min: number) => `Mínimo: ${min}`,
+      belowMinimum: (missing: number, cost: string | null) =>
+        `Faltam ${missing}` + (cost ? ` · ${cost} para repor` : ''),
+      shortageTitle: (count: number) =>
+        `${count} ${count === 1 ? 'ingrediente abaixo' : 'ingredientes abaixo'} do mínimo`,
+      shortageLine: (name: string, missing: number, cost: string | null) =>
+        `${name}: faltam ${missing}` + (cost ? ` · ${cost}` : ''),
+      restockTotal: (total: string) => `Custo total para repor: ${total}`,
+      allAboveMinimum: 'Todos os ingredientes com mínimo estão acima dele.',
       readFromImage: 'Lido do print',
       checkFromImage: 'Confira — não consegui ler com certeza',
     },
@@ -397,9 +406,13 @@ export const messages = {
       collectible: 'Coletável (dá para conseguir sem comprar)',
       collectCost: 'Custo ao coletar (por unidade)',
       collectCostHelp: 'Ex.: o leite gasta 1 garrafa vazia ($ 10) por unidade coletada.',
+      minStock: 'Estoque mínimo',
+      minStockHelp:
+        'A aba Estoque avisa quando ficar abaixo disso e mostra quanto custa repor. 0 = sem mínimo.',
       note: 'Observação',
       save: 'Salvar',
-      invalid: 'Confira os campos: preços são inteiros ≥ 0 e o nome não pode ficar vazio.',
+      invalid:
+        'Confira os campos: preços e estoque mínimo são inteiros ≥ 0 e o nome não pode ficar vazio.',
     },
   },
   detail: {

@@ -291,6 +291,7 @@ export async function updateKoiIngredient(
     buyPrice: number;
     collectible: boolean;
     collectCost: number;
+    minStock: number;
     note: string | null;
   },
 ): Promise<void> {

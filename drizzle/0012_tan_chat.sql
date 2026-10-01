@@ -1,0 +1,1 @@
+ALTER TABLE "koi_ingredients" ADD COLUMN "min_stock" integer DEFAULT 0 NOT NULL;

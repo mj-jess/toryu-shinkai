@@ -2,6 +2,8 @@
 
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -11,9 +13,11 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition, type FormEvent } from 'react';
+import { restockCost, stockShortage, type StockShortage } from '@bot/koi/stock';
 import type { KoiIngredient } from '@bot/koi/types';
 import { saveStock } from '@/app/(dashboard)/koi/actions';
 import { KoiInventoryDialog } from '@/components/koi-inventory-dialog';
+import { formatMoney } from '@/format';
 import type { InventoryReading } from '@/inventory/read-inventory';
 import { ingredientEmoji } from '@/koi-icons';
 import { messages } from '@/messages';
@@ -72,6 +76,16 @@ export function KoiStockForm({ ingredients }: { ingredients: KoiIngredient[] }) 
   }));
   const valid = parsed.every((entry) => entry.quantity !== null);
 
+  // Live: reflects what is typed (or read from a print) before saving.
+  const shortages = new Map<number, StockShortage>();
+  for (const ingredient of ingredients) {
+    const quantity = parseQuantity(quantities[ingredient.id] ?? '');
+    const shortage = quantity === null ? null : stockShortage(ingredient, quantity);
+    if (shortage) shortages.set(ingredient.id, shortage);
+  }
+  const hasMinimums = ingredients.some((ingredient) => ingredient.minStock > 0);
+  const costLabel = (cost: number) => (cost > 0 ? formatMoney(cost) : null);
+
   const handleSave = (event: FormEvent) => {
     event.preventDefault();
     if (!valid || saving) return;
@@ -106,6 +120,27 @@ export function KoiStockForm({ ingredients }: { ingredients: KoiIngredient[] }) 
           </div>
 
           {readSummary ? <Alert severity="info">{readSummary}</Alert> : null}
+          {shortages.size > 0 ? (
+            <Alert severity="warning">
+              <AlertTitle>{text.shortageTitle(shortages.size)}</AlertTitle>
+              <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
+                {[...shortages.values()].map((shortage) => (
+                  <li key={shortage.ingredient.id}>
+                    {text.shortageLine(
+                      shortage.ingredient.name,
+                      shortage.missing,
+                      costLabel(shortage.cost),
+                    )}
+                  </li>
+                ))}
+              </Box>
+              <Box sx={{ mt: 1, fontWeight: 700 }}>
+                {text.restockTotal(formatMoney(restockCost([...shortages.values()])))}
+              </Box>
+            </Alert>
+          ) : hasMinimums ? (
+            <Alert severity="success">{text.allAboveMinimum}</Alert>
+          ) : null}
           {failed ? <Alert severity="error">{text.invalid}</Alert> : null}
           {saved ? <Alert severity="success">{text.saved}</Alert> : null}
 
@@ -113,6 +148,18 @@ export function KoiStockForm({ ingredients }: { ingredients: KoiIngredient[] }) 
             {ingredients.map((ingredient) => {
               const value = quantities[ingredient.id] ?? '';
               const mark = marks[ingredient.id];
+              const shortage = shortages.get(ingredient.id);
+              const markText =
+                mark === 'read'
+                  ? text.readFromImage
+                  : mark === 'check'
+                    ? text.checkFromImage
+                    : null;
+              const minimumText = shortage
+                ? text.belowMinimum(shortage.missing, costLabel(shortage.cost))
+                : ingredient.minStock > 0
+                  ? text.minimum(ingredient.minStock)
+                  : null;
               return (
                 <Grid key={ingredient.id} size={{ xs: 6, sm: 4, md: 3 }}>
                   <TextField
@@ -124,11 +171,27 @@ export function KoiStockForm({ ingredients }: { ingredients: KoiIngredient[] }) 
                     color={mark === 'read' ? 'success' : mark === 'check' ? 'warning' : undefined}
                     focused={mark ? true : undefined}
                     helperText={
-                      mark === 'read'
-                        ? text.readFromImage
-                        : mark === 'check'
-                          ? text.checkFromImage
-                          : undefined
+                      markText || minimumText ? (
+                        <>
+                          {markText ? (
+                            <Box component="span" sx={{ display: 'block' }}>
+                              {markText}
+                            </Box>
+                          ) : null}
+                          {minimumText ? (
+                            <Box
+                              component="span"
+                              sx={{
+                                display: 'block',
+                                color: shortage ? 'error.main' : undefined,
+                                fontWeight: shortage ? 600 : undefined,
+                              }}
+                            >
+                              {minimumText}
+                            </Box>
+                          ) : null}
+                        </>
+                      ) : undefined
                     }
                     onChange={(event) => {
                       setSaved(false);

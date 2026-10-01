@@ -15,6 +15,8 @@ export interface KoiIngredient {
   collectCost: number;
   /** Current quantity on hand — managed in the dashboard Estoque tab. */
   stockQuantity: number;
+  /** Minimum to keep on hand; 0 means no minimum. */
+  minStock: number;
   note: string | null;
 }
 

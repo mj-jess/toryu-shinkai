@@ -27,18 +27,23 @@ export function KoiIngredientForm({ ingredient }: { ingredient: KoiIngredient })
   const [buy, setBuy] = useState(String(ingredient.buyPrice));
   const [collectible, setCollectible] = useState(ingredient.collectible);
   const [collectCost, setCollectCost] = useState(String(ingredient.collectCost));
+  const [minStock, setMinStock] = useState(String(ingredient.minStock));
   const [note, setNote] = useState(ingredient.note ?? '');
   const [failed, setFailed] = useState(false);
   const [saving, startTransition] = useTransition();
 
   const buyPrice = parsePrice(buy);
   const collectCostPrice = parsePrice(collectCost);
+  const minStockValue = parsePrice(minStock);
   const valid =
-    name.trim() !== '' && buyPrice !== null && (!collectible || collectCostPrice !== null);
+    name.trim() !== '' &&
+    buyPrice !== null &&
+    minStockValue !== null &&
+    (!collectible || collectCostPrice !== null);
 
   const handleSave = (event: FormEvent) => {
     event.preventDefault();
-    if (!valid || saving || buyPrice === null) return;
+    if (!valid || saving || buyPrice === null || minStockValue === null) return;
     setFailed(false);
     startTransition(async () => {
       const result = await saveIngredient(ingredient.id, {
@@ -46,6 +51,7 @@ export function KoiIngredientForm({ ingredient }: { ingredient: KoiIngredient })
         buyPrice,
         collectible,
         collectCost: collectible ? (collectCostPrice ?? 0) : 0,
+        minStock: minStockValue,
         note,
       });
       if (result.ok) {
@@ -100,6 +106,17 @@ export function KoiIngredientForm({ ingredient }: { ingredient: KoiIngredient })
             disabled={!collectible}
             helperText={text.collectCostHelp}
             onChange={(event) => setCollectCost(event.target.value)}
+            slotProps={{ htmlInput: { inputMode: 'numeric' } }}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <TextField
+            fullWidth
+            label={text.minStock}
+            value={minStock}
+            error={minStockValue === null}
+            helperText={text.minStockHelp}
+            onChange={(event) => setMinStock(event.target.value)}
             slotProps={{ htmlInput: { inputMode: 'numeric' } }}
           />
         </Grid>
