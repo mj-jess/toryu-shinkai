@@ -19,7 +19,6 @@ import {
 import { formatMoney, nowTimestampBR } from '@/format';
 import { messages } from '@/messages';
 import { requireUser } from '@/session';
-import { isStockImageType, readStockFromImage, type StockReadOutcome } from '@/stock-reader';
 
 export interface SaveResult {
   ok: boolean;
@@ -203,33 +202,6 @@ export async function setWeeklyPostEnabled(enabled: boolean): Promise<SaveResult
   ]);
   revalidatePath('/koi');
   return { ok: true };
-}
-
-/** Largest screenshot accepted (the client already downsizes before uploading). */
-const MAX_STOCK_IMAGE_BYTES = 4 * 1024 * 1024;
-
-/**
- * Reads the stock quantities off an inventory screenshot. Nothing is saved here:
- * the image is analysed in memory and dropped, and the quantities only fill the
- * form — the user reviews them and saves through `saveStock` as usual.
- */
-export async function readStockImage(formData: FormData): Promise<StockReadOutcome> {
-  await requireUser();
-  const image = formData.get('image');
-  if (
-    !(image instanceof File) ||
-    !isStockImageType(image.type) ||
-    image.size === 0 ||
-    image.size > MAX_STOCK_IMAGE_BYTES
-  ) {
-    return { ok: false, reason: 'failed' };
-  }
-  const base64 = Buffer.from(await image.arrayBuffer()).toString('base64');
-  const ingredients = await getKoiIngredients();
-  return readStockFromImage(
-    { base64, mediaType: image.type },
-    ingredients.map((ingredient) => ({ id: ingredient.id, name: ingredient.name })),
-  );
 }
 
 export async function saveIngredient(

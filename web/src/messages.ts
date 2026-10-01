@@ -258,21 +258,32 @@ export const messages = {
       saved: 'Estoque atualizado.',
       invalid: 'As quantidades precisam ser números inteiros ≥ 0.',
       readImage: 'Ler print do inventário',
-      readingImage: 'Lendo o print…',
-      pasteHint: 'Você também pode colar o print aqui com Ctrl+V. A imagem não é guardada.',
-      readResult: (found: number, missing: number) =>
-        `Li ${found} ${found === 1 ? 'ingrediente' : 'ingredientes'} no print` +
-        (missing > 0
-          ? ` — ${missing} não ${missing === 1 ? 'apareceu e ficou' : 'apareceram e ficaram'} como estava${missing === 1 ? '' : 'm'}`
-          : '') +
-        '. Confira os campos destacados e clique em Salvar estoque.',
+      dialogTitle: 'Ler print do inventário',
+      dropHint: 'Arraste o print aqui ou cole com Ctrl+V',
+      dropActive: 'Solte a imagem para ler',
+      chooseImage: 'Escolher imagem',
+      privacyNote: 'A imagem é lida aqui no seu navegador — não é enviada nem guardada.',
+      firstUseNote: 'Na primeira leitura o leitor é baixado (alguns MB); depois fica em cache.',
+      reading: (done: number, total: number) => `Lendo o print… ${done} de ${total} itens`,
+      cancel: 'Cancelar',
+      notAnImage: 'Esse arquivo não é uma imagem.',
+      noSlots: 'Não encontrei os itens do inventário nesse print. Recorte só a área dos materiais.',
+      readFailed: 'Não consegui ler o print. Tente de novo.',
       readNothing: 'Não reconheci nenhum ingrediente do catálogo nesse print.',
+      readResult: (filled: number, toCheck: number, missing: number) =>
+        [
+          `Li ${filled} ${filled === 1 ? 'ingrediente' : 'ingredientes'} do print`,
+          toCheck > 0
+            ? `${toCheck} ${toCheck === 1 ? 'ficou' : 'ficaram'} em amarelo para você conferir`
+            : null,
+          missing > 0
+            ? `${missing} não ${missing === 1 ? 'apareceu e ficou' : 'apareceram e ficaram'} como estava${missing === 1 ? '' : 'm'}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ') + '. Revise e clique em Salvar estoque.',
       readFromImage: 'Lido do print',
-      readErrors: {
-        not_configured: 'A leitura de print não está configurada (falta a ANTHROPIC_API_KEY).',
-        refused: 'Não consegui analisar essa imagem. Tente outro print.',
-        failed: 'Não consegui ler o print. Tente de novo ou com uma imagem mais nítida.',
-      },
+      checkFromImage: 'Confira — não consegui ler com certeza',
     },
     collect: {
       title: 'Planejar coleta',
