@@ -14,6 +14,7 @@ import { EnrollmentsPerMonthChart } from '@/components/enrollments-per-month-cha
 import { GymDistributionChart } from '@/components/gym-distribution-chart';
 import { IngredientSourceChart } from '@/components/ingredient-source-chart';
 import { KoiProfitChart } from '@/components/koi-profit-chart';
+import { LowStockCard } from '@/components/low-stock-card';
 import { SalesPeriodFilter } from '@/components/sales-period-filter';
 import { StatCard } from '@/components/stat-card';
 import { getKoiCatalog, getKoiIngredients, listEnrollments, listKoiSales } from '@/db';
@@ -102,6 +103,9 @@ export default async function DashboardHomePage({
       <Typography variant="h6" sx={{ mb: 1.5 }}>
         {t.koi.section}
       </Typography>
+      <Box sx={{ mb: 3 }}>
+        <LowStockCard ingredients={ingredients} />
+      </Box>
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={1}

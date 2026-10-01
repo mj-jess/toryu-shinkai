@@ -30,6 +30,7 @@ export function KoiIngredientsTable({ ingredients }: { ingredients: KoiIngredien
             <TableCell>{text.buyPrice}</TableCell>
             <TableCell align="center">{text.collectible}</TableCell>
             <TableCell>{text.collectCost}</TableCell>
+            <TableCell align="right">{text.minStock}</TableCell>
             <TableCell align="center">{text.actions}</TableCell>
           </TableRow>
         </TableHead>
@@ -57,6 +58,9 @@ export function KoiIngredientsTable({ ingredients }: { ingredients: KoiIngredien
               </TableCell>
               <TableCell>
                 {ingredient.collectible ? formatMoney(ingredient.collectCost) : '—'}
+              </TableCell>
+              <TableCell align="right">
+                {ingredient.minStock > 0 ? ingredient.minStock.toLocaleString('pt-BR') : '—'}
               </TableCell>
               <TableCell align="center">
                 <Tooltip title={text.edit}>

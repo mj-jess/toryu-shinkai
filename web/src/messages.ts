@@ -57,6 +57,12 @@ export const messages = {
       buying: 'Comprando tudo',
       collectible: 'Coletáveis',
       buyOnly: 'Só comprar',
+      lowStock: 'Estoque baixo',
+      lowStockNoMinimum:
+        'Nenhum estoque mínimo configurado. Defina em KOI → Ingredientes → editar para ver os avisos aqui.',
+      lowStockCaption:
+        'Coletáveis contam como coleta. Para incluir a compra deles, marque "Comprar" na aba Estoque.',
+      seeStock: 'Ver estoque',
       seeAll: 'Ver o KOI',
     },
   },
@@ -283,12 +289,16 @@ export const messages = {
           .filter(Boolean)
           .join(' · ') + '. Revise e clique em Salvar estoque.',
       minimum: (min: number) => `Mínimo: ${min}`,
-      belowMinimum: (missing: number, cost: string | null) =>
-        `Faltam ${missing}` + (cost ? ` · ${cost} para repor` : ''),
+      belowMinimum: (missing: number, detail: string | null) =>
+        `Faltam ${missing}` + (detail ? ` · ${detail}` : ''),
+      buyDetail: (cost: string) => `${cost} para repor`,
+      collectDetail: (cost: string | null) => (cost ? `coletar (${cost})` : 'coletar'),
+      buyCheckbox: 'Comprar',
+      collectHint: 'Coletáveis só entram no total quando marcados para comprar.',
       shortageTitle: (count: number) =>
         `${count} ${count === 1 ? 'ingrediente abaixo' : 'ingredientes abaixo'} do mínimo`,
-      shortageLine: (name: string, missing: number, cost: string | null) =>
-        `${name}: faltam ${missing}` + (cost ? ` · ${cost}` : ''),
+      shortageLine: (name: string, missing: number, detail: string | null) =>
+        `${name}: faltam ${missing}` + (detail ? ` · ${detail}` : ''),
       restockTotal: (total: string) => `Custo total para repor: ${total}`,
       allAboveMinimum: 'Todos os ingredientes com mínimo estão acima dele.',
       readFromImage: 'Lido do print',
@@ -384,6 +394,7 @@ export const messages = {
       buyPrice: 'Preço de compra',
       collectible: 'Coletável',
       collectCost: 'Custo ao coletar',
+      minStock: 'Estoque mínimo',
       actions: 'Ações',
       edit: 'Editar ingrediente',
       yes: 'Sim',

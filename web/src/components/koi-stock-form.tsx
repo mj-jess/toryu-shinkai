@@ -6,6 +6,8 @@ import AlertTitle from '@mui/material/AlertTitle';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import CardContent from '@mui/material/CardContent';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
@@ -49,6 +51,8 @@ export function KoiStockForm({ ingredients }: { ingredients: KoiIngredient[] }) 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [readSummary, setReadSummary] = useState<string | null>(null);
   const [marks, setMarks] = useState<Record<number, ReadMark>>({});
+  /** Collectible ingredients the user will buy instead of collecting (counted in the total). */
+  const [buying, setBuying] = useState<Set<number>>(() => new Set());
 
   const applyReading = (reading: InventoryReading) => {
     setDialogOpen(false);
@@ -85,6 +89,22 @@ export function KoiStockForm({ ingredients }: { ingredients: KoiIngredient[] }) 
   }
   const hasMinimums = ingredients.some((ingredient) => ingredient.minStock > 0);
   const costLabel = (cost: number) => (cost > 0 ? formatMoney(cost) : null);
+  const buys = (shortage: StockShortage) =>
+    !shortage.ingredient.collectible || buying.has(shortage.ingredient.id);
+  const restockDetail = (shortage: StockShortage) =>
+    buys(shortage)
+      ? shortage.cost > 0
+        ? text.buyDetail(formatMoney(shortage.cost))
+        : null
+      : text.collectDetail(costLabel(shortage.collectCost));
+  const shortageList = [...shortages.values()];
+  const toggleBuying = (id: number, buy: boolean) =>
+    setBuying((current) => {
+      const next = new Set(current);
+      if (buy) next.add(id);
+      else next.delete(id);
+      return next;
+    });
 
   const handleSave = (event: FormEvent) => {
     event.preventDefault();
@@ -124,19 +144,44 @@ export function KoiStockForm({ ingredients }: { ingredients: KoiIngredient[] }) 
             <Alert severity="warning">
               <AlertTitle>{text.shortageTitle(shortages.size)}</AlertTitle>
               <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
-                {[...shortages.values()].map((shortage) => (
+                {shortageList.map((shortage) => (
                   <li key={shortage.ingredient.id}>
-                    {text.shortageLine(
-                      shortage.ingredient.name,
-                      shortage.missing,
-                      costLabel(shortage.cost),
-                    )}
+                    <Box
+                      component="span"
+                      sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, minHeight: 28 }}
+                    >
+                      {text.shortageLine(
+                        shortage.ingredient.name,
+                        shortage.missing,
+                        restockDetail(shortage),
+                      )}
+                      {shortage.ingredient.collectible ? (
+                        <FormControlLabel
+                          sx={{ m: 0 }}
+                          control={
+                            <Checkbox
+                              size="small"
+                              sx={{ p: 0.25, mr: 0.5 }}
+                              checked={buying.has(shortage.ingredient.id)}
+                              onChange={(event) =>
+                                toggleBuying(shortage.ingredient.id, event.target.checked)
+                              }
+                            />
+                          }
+                          label={text.buyCheckbox}
+                          slotProps={{ typography: { variant: 'body2' } }}
+                        />
+                      ) : null}
+                    </Box>
                   </li>
                 ))}
               </Box>
               <Box sx={{ mt: 1, fontWeight: 700 }}>
-                {text.restockTotal(formatMoney(restockCost([...shortages.values()])))}
+                {text.restockTotal(formatMoney(restockCost(shortageList, buys)))}
               </Box>
+              {shortageList.some((shortage) => shortage.ingredient.collectible) ? (
+                <Box sx={{ mt: 0.5, fontSize: '0.8rem', opacity: 0.85 }}>{text.collectHint}</Box>
+              ) : null}
             </Alert>
           ) : hasMinimums ? (
             <Alert severity="success">{text.allAboveMinimum}</Alert>
@@ -156,7 +201,7 @@ export function KoiStockForm({ ingredients }: { ingredients: KoiIngredient[] }) 
                     ? text.checkFromImage
                     : null;
               const minimumText = shortage
-                ? text.belowMinimum(shortage.missing, costLabel(shortage.cost))
+                ? text.belowMinimum(shortage.missing, restockDetail(shortage))
                 : ingredient.minStock > 0
                   ? text.minimum(ingredient.minStock)
                   : null;
