@@ -4,7 +4,12 @@ import { canSignIn } from '@/access';
 import { upsertUserProfile } from '@/db';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [Discord],
+  providers: [
+    // Discord now returns an RFC 9207 `iss` on the OAuth redirect and Auth.js checks it
+    // against the provider issuer — the built-in provider leaves it unset, which rejects
+    // every sign-in ("unexpected iss"). Value from discord.com/.well-known/openid-configuration.
+    Discord({ issuer: 'https://discord.com' }),
+  ],
   pages: { signIn: '/login' },
   callbacks: {
     async signIn({ profile }) {
